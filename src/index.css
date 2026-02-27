@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-500: #0ea5e9;
+  /* Light blue accent */
+  --color-positive: #ef4444;
+  /* Bright Red for B+ */
+  --color-switched: #f97316;
+  /* Orange for switched power */
+  --color-signal: #06b6d4;
+  /* Cyan for signal */
+  --color-ground: #10b981;
+  /* Bright Green for ground */
+  --color-floating: #6b7280;
+  /* Dim Grey for unknown/floating */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #f1f5f9;
+  /* slate-100 */
+  /* Background applied in App component root */
+}
+
+/* Custom XYFlow styles to make standard nodes look better in dark mode */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background-color: #0f172a;
+  border: 2px solid #94a3b8;
+}
+
+.react-flow__handle.connecting {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+.react-flow__connection-path {
+  stroke-width: 3px;
+}

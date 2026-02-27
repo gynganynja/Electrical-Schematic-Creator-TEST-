@@ -1,0 +1,405 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "1",
+      "type": "battery",
+      "position": {
+        "x": 80,
+        "y": 220
+      },
+      "data": {
+        "id": "1",
+        "type": "battery",
+        "label": "BAT1",
+        "state": {},
+        "params": {
+          "voltage": 12,
+          "internalResistance": 0.05
+        }
+      },
+      "measured": {
+        "width": 128,
+        "height": 92
+      }
+    },
+    {
+      "id": "2",
+      "type": "switch_spst",
+      "position": {
+        "x": 250,
+        "y": 220
+      },
+      "data": {
+        "id": "2",
+        "type": "switch_spst",
+        "label": "S1 (Park brake NOT applied = +12V)",
+        "state": {
+          "closed": true
+        },
+        "params": {}
+      },
+      "measured": {
+        "width": 80,
+        "height": 67
+      }
+    },
+    {
+      "id": "3",
+      "type": "switch_spst",
+      "position": {
+        "x": 430,
+        "y": 220
+      },
+      "data": {
+        "id": "3",
+        "type": "switch_spst",
+        "label": "S2 (Door OPEN = Earth)",
+        "state": {
+          "closed": false
+        },
+        "params": {}
+      },
+      "measured": {
+        "width": 80,
+        "height": 67
+      }
+    },
+    {
+      "id": "4",
+      "type": "relay_spdt",
+      "position": {
+        "x": 430,
+        "y": 20
+      },
+      "data": {
+        "id": "4",
+        "type": "relay_spdt",
+        "label": "K3 (Latch relay)",
+        "state": {
+          "energized": false
+        },
+        "params": {
+          "coilResistance": 80,
+          "pullInVoltage": 8
+        }
+      },
+      "measured": {
+        "width": 160,
+        "height": 190
+      }
+    },
+    {
+      "id": "5",
+      "type": "lamp",
+      "position": {
+        "x": 760,
+        "y": 220
+      },
+      "data": {
+        "id": "5",
+        "type": "lamp",
+        "label": "Load (Buzzer/Light)",
+        "state": {
+          "on": false
+        },
+        "params": {
+          "resistance": 24
+        }
+      },
+      "measured": {
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "6",
+      "type": "ground",
+      "position": {
+        "x": 760,
+        "y": 420
+      },
+      "data": {
+        "id": "6",
+        "type": "ground",
+        "label": "GND",
+        "state": {},
+        "params": {}
+      },
+      "measured": {
+        "width": 48,
+        "height": 48
+      }
+    },
+    {
+      "id": "7",
+      "type": "splice",
+      "position": {
+        "x": 200,
+        "y": 260
+      },
+      "data": {
+        "id": "7",
+        "type": "splice",
+        "label": "SP_POS (+12 bus)",
+        "state": {},
+        "params": {}
+      },
+      "measured": {
+        "width": 16,
+        "height": 16
+      }
+    },
+    {
+      "id": "8",
+      "type": "splice",
+      "position": {
+        "x": 350,
+        "y": 260
+      },
+      "data": {
+        "id": "8",
+        "type": "splice",
+        "label": "SP_A",
+        "state": {},
+        "params": {}
+      },
+      "measured": {
+        "width": 16,
+        "height": 16
+      }
+    },
+    {
+      "id": "9",
+      "type": "splice",
+      "position": {
+        "x": 560,
+        "y": 260
+      },
+      "data": {
+        "id": "9",
+        "type": "splice",
+        "label": "SP_B (latched node)",
+        "state": {},
+        "params": {}
+      },
+      "measured": {
+        "width": 16,
+        "height": 16
+      }
+    },
+    {
+      "id": "10",
+      "type": "splice",
+      "position": {
+        "x": 560,
+        "y": 390
+      },
+      "data": {
+        "id": "10",
+        "type": "splice",
+        "label": "SP_GND (0V)",
+        "state": {},
+        "params": {}
+      },
+      "measured": {
+        "width": 16,
+        "height": 16
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "type": "wire",
+      "source": "1",
+      "sourceHandle": "negative",
+      "target": "10",
+      "targetHandle": "b_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e2",
+      "type": "wire",
+      "source": "10",
+      "sourceHandle": "r_out",
+      "target": "6",
+      "targetHandle": "gnd",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e3",
+      "type": "wire",
+      "source": "1",
+      "sourceHandle": "positive",
+      "target": "2",
+      "targetHandle": "in",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#ef4444",
+        "strokeWidth": 2
+      },
+      "animated": true
+    },
+    {
+      "id": "e4",
+      "type": "wire",
+      "source": "2",
+      "sourceHandle": "out",
+      "target": "8",
+      "targetHandle": "l_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#ef4444",
+        "strokeWidth": 2
+      },
+      "animated": true
+    },
+    {
+      "id": "e5",
+      "type": "wire",
+      "source": "8",
+      "sourceHandle": "r_out",
+      "target": "4",
+      "targetHandle": "coil_in",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#ef4444",
+        "strokeWidth": 2
+      },
+      "animated": true
+    },
+    {
+      "id": "e6",
+      "type": "wire",
+      "source": "8",
+      "sourceHandle": "t_out",
+      "target": "5",
+      "targetHandle": "in",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#ef4444",
+        "strokeWidth": 2
+      },
+      "animated": true
+    },
+    {
+      "id": "e7",
+      "type": "wire",
+      "source": "4",
+      "sourceHandle": "coil_out",
+      "target": "9",
+      "targetHandle": "l_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e8",
+      "type": "wire",
+      "source": "5",
+      "sourceHandle": "out",
+      "target": "9",
+      "targetHandle": "t_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e9",
+      "type": "wire",
+      "source": "9",
+      "sourceHandle": "r_out",
+      "target": "3",
+      "targetHandle": "in",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e10",
+      "type": "wire",
+      "source": "3",
+      "sourceHandle": "out",
+      "target": "10",
+      "targetHandle": "l_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e11",
+      "type": "wire",
+      "source": "9",
+      "sourceHandle": "b_out",
+      "target": "4",
+      "targetHandle": "com",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    },
+    {
+      "id": "e12",
+      "type": "wire",
+      "source": "4",
+      "sourceHandle": "no",
+      "target": "10",
+      "targetHandle": "t_out",
+      "data": {
+        "resistance": 0.001
+      },
+      "style": {
+        "stroke": "#22c55e",
+        "strokeWidth": 2
+      },
+      "animated": false
+    }
+  ]
+}
