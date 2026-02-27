@@ -56,6 +56,7 @@ export interface BaseComponentData {
     label: string;
     state: Record<string, any>;
     params: Record<string, any>;
+    [key: string]: any;
 }
 
 export interface BatteryData extends BaseComponentData {
@@ -141,6 +142,7 @@ export interface CircuitEdgeData {
     wireColor?: string;
     gaugeAwg?: string;
     gaugeMm2?: string;
+    [key: string]: any;
 }
 
 export type CircuitEdge = Edge<CircuitEdgeData>;

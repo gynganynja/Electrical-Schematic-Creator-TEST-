@@ -1,4 +1,3 @@
-import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { BatteryMedium } from 'lucide-react';
 import { getRotationPosition } from '../../utils/rotation';
