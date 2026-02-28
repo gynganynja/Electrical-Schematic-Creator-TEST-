@@ -52,6 +52,20 @@ import { ConnectorNode } from './nodes/ConnectorNode';
 import { NetLabelNode } from './nodes/NetLabelNode';
 import { HarnessEntryNode } from './nodes/HarnessEntryNode';
 import { HarnessExitNode } from './nodes/HarnessExitNode';
+import { TempSensorNode } from './nodes/TempSensorNode';
+import { OilPressureSensorNode } from './nodes/OilPressureSensorNode';
+import { AirPressureSensorNode } from './nodes/AirPressureSensorNode';
+import { MAFSensorNode } from './nodes/MAFSensorNode';
+import { WheelSpeedSensorNode } from './nodes/WheelSpeedSensorNode';
+import { RPMSensorNode } from './nodes/RPMSensorNode';
+import { SpeedoGaugeNode } from './nodes/SpeedoGaugeNode';
+import { TachoGaugeNode } from './nodes/TachoGaugeNode';
+import { FuelGaugeNode } from './nodes/FuelGaugeNode';
+import { CANBusNode } from './nodes/CANBusNode';
+import { CANTransceiverNode } from './nodes/CANTransceiverNode';
+import { CANTerminatorNode } from './nodes/CANTerminatorNode';
+import { AdvancedECUNode } from './nodes/AdvancedECUNode';
+import { SchematicFrameNode } from './nodes/SchematicFrameNode';
 import { WireEdge } from './edges/WireEdge';
 
 // Register all custom node types — must be defined OUTSIDE the component
@@ -99,6 +113,20 @@ const nodeTypes: Record<string, any> = {
     net_label: NetLabelNode,
     harness_entry: HarnessEntryNode,
     harness_exit: HarnessExitNode,
+    temp_sensor: TempSensorNode,
+    oil_press_sensor: OilPressureSensorNode,
+    air_press_sensor: AirPressureSensorNode,
+    maf_sensor: MAFSensorNode,
+    wss_sensor: WheelSpeedSensorNode,
+    rpm_sensor: RPMSensorNode,
+    speedo_gauge: SpeedoGaugeNode,
+    tacho_gauge: TachoGaugeNode,
+    fuel_gauge: FuelGaugeNode,
+    can_bus: CANBusNode,
+    can_transceiver: CANTransceiverNode,
+    can_terminator: CANTerminatorNode,
+    ecu_advanced: AdvancedECUNode,
+    schematic_frame: SchematicFrameNode,
 };
 
 const edgeTypes: Record<string, any> = {
@@ -208,6 +236,32 @@ function makeDefaultData(type: string, id: string): Record<string, any> {
             return { id, type, label: `H${id}`, state: {}, params: { numPins: 6, color: '#64748b' } };
         case 'harness_exit':
             return { id, type, label: `H${id}`, state: {}, params: { numPins: 6, color: '#64748b' } };
+        case 'temp_sensor':
+            return { id, type, label: `TEMP${id}`, state: { temperature: 25 }, params: {} };
+        case 'oil_press_sensor':
+            return { id, type, label: `OIL${id}`, state: { pressure: 40 }, params: {} };
+        case 'air_press_sensor':
+            return { id, type, label: `AIR${id}`, state: { pressure: 101.3 }, params: {} };
+        case 'maf_sensor':
+            return { id, type, label: `MAF${id}`, state: { flow: 5 }, params: {} };
+        case 'wss_sensor':
+            return { id, type, label: `WSS${id}`, state: { speed: 0 }, params: {} };
+        case 'speedo_gauge':
+            return { id, type, label: `SPD${id}`, state: { voltage: 0 }, params: {} };
+        case 'tacho_gauge':
+            return { id, type, label: `TACH${id}`, state: { voltage: 0 }, params: {} };
+        case 'fuel_gauge':
+            return { id, type, label: `FUEL${id}`, state: { voltage: 0 }, params: {} };
+        case 'can_bus':
+            return { id, type, label: `CAN${id}`, state: {}, params: { bitrate: 500000, mode: 'HS-CAN' } };
+        case 'can_transceiver':
+            return { id, type, label: `XCVR${id}`, state: { vcc: 0 }, params: {} };
+        case 'can_terminator':
+            return { id, type, label: `TERM${id}`, state: {}, params: {} };
+        case 'ecu_advanced':
+            return { id, type, label: `ECU${id}`, state: { vcc: 0 }, params: { canMode: 'J1939', sourceAddress: 0x01 } };
+        case 'schematic_frame':
+            return { id, type, label: `FRAME${id}`, state: {}, params: { frameName: `Sheet ${id}`, frameDescription: '' } };
         default:
             return { id, type: 'resistor', label: `R${id}`, state: {}, params: { resistance: 100 } };
     }
@@ -291,11 +345,6 @@ export function CircuitCanvas() {
             } else if (isCtrl && key === 'y') {
                 e.preventDefault();
                 useStore.getState().redo();
-            } else if (key === 'r') {
-                // Only rotate if not typing in an input
-                if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
-                    useStore.getState().rotateSelected();
-                }
             }
         };
 
@@ -324,11 +373,17 @@ export function CircuitCanvas() {
             const newNodeData = makeDefaultData(type, id);
 
             // Add the new node
+            const isFrame = type === 'schematic_frame';
             addNode({
                 id,
                 type,
                 position,
                 data: newNodeData,
+                ...(isFrame ? {
+                    zIndex: -1,
+                    style: { width: 800, height: 500 },
+                    resizing: true,
+                } : {}),
             } as Node);
 
             // Only auto-split if splice is dropped directly ON an existing wire (10px threshold)
@@ -366,11 +421,14 @@ export function CircuitCanvas() {
         [addNode],
     );
 
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const validEdges = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+
     return (
         <div className="flex-1 h-full" ref={reactFlowWrapper}>
             <ReactFlow
                 nodes={nodes}
-                edges={edges}
+                edges={validEdges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}

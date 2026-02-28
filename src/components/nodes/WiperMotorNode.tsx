@@ -1,6 +1,10 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 export function WiperMotorNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const label = data?.label || 'WIPER';
     const isRunning = data?.state?.running || false;
     const parkClosed = data?.state?.parkClosed ?? true;
@@ -10,8 +14,7 @@ export function WiperMotorNode({ data, selected }: any) {
     // Using sine to make it look like a reciprocating linkage
     const swingAngle = Math.sin((pos * Math.PI) / 180) * 45;
 
-    return (
-        <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`}>
+    return (            <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`}>
             <div className="text-[10px] font-bold mt-1.5 text-slate-400 tracking-wider font-mono uppercase">{label}</div>
 
             <div className="my-2 relative flex items-center justify-center" style={{ width: 80, height: 45 }}>
@@ -54,13 +57,13 @@ export function WiperMotorNode({ data, selected }: any) {
             </div>
 
             {/* Motor power */}
-            <Handle type="target" position={Position.Left} id="in"
-                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '40%' }} />
-            <Handle type="source" position={Position.Left} id="out"
-                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '60%' }} />
+            <MirroredHandle type="target" side={Position.Left} id="in"
+                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '40%' }}  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Left} id="out"
+                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '60%' }}  flipX={flipX} flipY={flipY} />
             {/* Park switch */}
-            <Handle type="target" position={Position.Right} id="park"
-                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white" />
+            <MirroredHandle type="target" side={Position.Right} id="park"
+                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

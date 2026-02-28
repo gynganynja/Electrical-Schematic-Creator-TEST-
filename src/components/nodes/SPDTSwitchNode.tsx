@@ -1,11 +1,15 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
 import useStore from '../../store/useStore';
+
 
 /**
  * SPDT (Single Pole Double Throw) Changeover Switch.
  * COM routes to either NC or NO position.
  */
 export function SPDTSwitchNode({ id, data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const updateNodeData = useStore(state => state.updateNodeData);
     const position = data?.state?.position || 'nc'; // 'nc' or 'no'
     const label = data?.label || 'SPDT';
@@ -15,11 +19,10 @@ export function SPDTSwitchNode({ id, data, selected }: any) {
         updateNodeData(id, { state: { position: position === 'nc' ? 'no' : 'nc' } });
     };
 
-    return (
-        <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`}>
+    return (            <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`}>
             <div className="text-[10px] font-bold mt-1.5 text-slate-400 tracking-wider">{label}</div>
 
-            <div className="my-2 relative" style={{ width: 60, height: 40 }}>
+            <div className="my-2 relative" style={{ width: 60, height: 40}}>
                 <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
                     {/* COM terminal dot */}
                     <circle cx="8" cy="20" r="4" fill={selected ? '#38bdf8' : '#94a3b8'} />
@@ -50,14 +53,14 @@ export function SPDTSwitchNode({ id, data, selected }: any) {
             </button>
 
             {/* COM = left input */}
-            <Handle type="target" position={Position.Left} id="com"
-                className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white" />
+            <MirroredHandle type="source" side={Position.Left} id="com"
+                className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
             {/* NC = top-right output */}
-            <Handle type="source" position={Position.Right} id="out_nc"
-                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white" style={{ top: '30%' }} />
+            <MirroredHandle type="source" side={Position.Right} id="out_nc"
+                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white" style={{ top: '30%' }}  flipX={flipX} flipY={flipY} />
             {/* NO = bottom-right output */}
-            <Handle type="source" position={Position.Right} id="out_no"
-                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '70%' }} />
+            <MirroredHandle type="source" side={Position.Right} id="out_no"
+                className="!w-3 !h-3 !bg-sky-400 !border-2 !border-white" style={{ top: '70%' }}  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

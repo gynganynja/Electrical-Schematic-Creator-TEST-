@@ -1,6 +1,8 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
 import { Key } from 'lucide-react';
 import useStore from '../../store/useStore';
+
 
 /**
  * Multi-position Ignition Switch.
@@ -8,6 +10,8 @@ import useStore from '../../store/useStore';
  * Each position connects BATT to different output combinations.
  */
 export function IgnitionSwitchNode({ id, data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const updateNodeData = useStore(state => state.updateNodeData);
     const position = data?.state?.position || 'off'; // 'off' | 'acc' | 'on' | 'start'
     const label = data?.label || 'IGN SW';
@@ -35,8 +39,7 @@ export function IgnitionSwitchNode({ id, data, selected }: any) {
         start: 'drop-shadow-[0_0_6px_rgba(248,113,113,0.8)]',
     };
 
-    return (
-        <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`}>
+    return (            <div className={`bg-slate-900 border-2 rounded-lg w-28 flex flex-col items-center shadow-lg relative transition-all ${selected ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-slate-700 hover:border-slate-500'}`} >
             <div className="text-[10px] font-bold mt-1.5 text-slate-400 tracking-wider">{label}</div>
 
             <button
@@ -64,17 +67,17 @@ export function IgnitionSwitchNode({ id, data, selected }: any) {
             </div>
 
             {/* BATT input */}
-            <Handle type="target" position={Position.Left} id="batt"
-                className="!w-3 !h-3 !bg-red-500 !border-2 !border-white" style={{ top: '50%' }} />
+            <MirroredHandle type="target" side={Position.Left} id="batt"
+                className="!w-3 !h-3 !bg-red-500 !border-2 !border-white" style={{ top: '50%' }}  flipX={flipX} flipY={flipY} />
             {/* ACC output */}
-            <Handle type="source" position={Position.Right} id="acc"
-                className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white" style={{ top: '25%' }} />
+            <MirroredHandle type="source" side={Position.Right} id="acc"
+                className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white" style={{ top: '25%' }}  flipX={flipX} flipY={flipY} />
             {/* IGN output */}
-            <Handle type="source" position={Position.Right} id="ign"
-                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white" style={{ top: '50%' }} />
+            <MirroredHandle type="source" side={Position.Right} id="ign"
+                className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-white" style={{ top: '50%' }}  flipX={flipX} flipY={flipY} />
             {/* START output */}
-            <Handle type="source" position={Position.Right} id="start"
-                className="!w-3 !h-3 !bg-red-400 !border-2 !border-white" style={{ top: '75%' }} />
+            <MirroredHandle type="source" side={Position.Right} id="start"
+                className="!w-3 !h-3 !bg-red-400 !border-2 !border-white" style={{ top: '75%' }}  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

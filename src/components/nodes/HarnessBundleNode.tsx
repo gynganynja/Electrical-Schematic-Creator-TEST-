@@ -1,4 +1,6 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 /**
  * Harness Bundle Node — CAT-style schematic representation.
@@ -6,6 +8,8 @@ import { Handle, Position } from '@xyflow/react';
  * Configurable pin count (1-12). Each pin is a straight pass-through (in_N ↔ out_N).
  */
 export function HarnessBundleNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const label = data?.label || 'H001';
     const numPins = Math.min(Math.max(data?.params?.numPins ?? 6, 1), 12);
     const bundleColor = data?.params?.color ?? '#64748b';
@@ -19,10 +23,9 @@ export function HarnessBundleNode({ data, selected }: any) {
     const fanW = 50; // width of the fan-in / fan-out area
     const bundleW = W - fanW * 2; // middle thick bundle section
 
-    return (
-        <div
+    return (            <div
             className={`relative transition-all ${selected ? 'drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]' : ''}`}
-            style={{ width: W, height: totalH }}
+            style={{ width: W, height: totalH}}
         >
             <svg width={W} height={totalH} viewBox={`0 0 ${W} ${totalH}`} fill="none">
                 {/* Background */}
@@ -118,22 +121,22 @@ export function HarnessBundleNode({ data, selected }: any) {
                 const y = margin + i * pinSpacing + pinSpacing / 2;
                 const pct = (y / totalH) * 100;
                 return (
-                    <Handle key={`in_${i}`}
-                        type="target" position={Position.Left} id={`in_${i + 1}`}
+                    <MirroredHandle key={`in_${i}`}
+                        type="target" side={Position.Left} id={`in_${i + 1}`}
                         className="!w-2.5 !h-2.5 !bg-slate-400 !border-2 !border-white"
                         style={{ top: `${pct}%` }}
-                    />
+                     flipX={flipX} flipY={flipY} />
                 );
             })}
             {Array.from({ length: numPins }, (_, i) => {
                 const y = margin + i * pinSpacing + pinSpacing / 2;
                 const pct = (y / totalH) * 100;
                 return (
-                    <Handle key={`out_${i}`}
-                        type="source" position={Position.Right} id={`out_${i + 1}`}
+                    <MirroredHandle key={`out_${i}`}
+                        type="source" side={Position.Right} id={`out_${i + 1}`}
                         className="!w-2.5 !h-2.5 !bg-slate-400 !border-2 !border-white"
                         style={{ top: `${pct}%` }}
-                    />
+                     flipX={flipX} flipY={flipY} />
                 );
             })}
         </div>

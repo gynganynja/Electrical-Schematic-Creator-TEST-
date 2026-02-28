@@ -1,4 +1,6 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 /**
  * Dual-87 Relay.
@@ -6,6 +8,8 @@ import { Handle, Position } from '@xyflow/react';
  * Pins: 85 (coil-), 86 (coil+), 30 (COM), 87a (NO A), 87b (NO B)
  */
 export function RelayDual87Node({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const isEnergized = data?.state?.energized || false;
     const label = data?.label || 'K';
 
@@ -16,9 +20,8 @@ export function RelayDual87Node({ data, selected }: any) {
     const bodyStroke = selected ? '#38bdf8' : '#334155';
     const textColor = '#94a3b8';
 
-    return (
-        <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
-            style={{ width: W, height: H + 24 }}>
+    return (            <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
+            style={{ width: W, height: H + 24}}>
             <svg width={W} height={H + 24} viewBox={`0 0 ${W} ${H + 24}`} fill="none">
                 <rect x="5" y="5" width={W - 10} height={H - 10} rx="6"
                     fill={bodyColor} stroke={bodyStroke} strokeWidth="1.5" />
@@ -59,20 +62,20 @@ export function RelayDual87Node({ data, selected }: any) {
             </div>
 
             {/* 87a — top left */}
-            <Handle type="source" position={Position.Top} id="no_a"
-                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '33%' }} />
+            <MirroredHandle type="source" side={Position.Top} id="no_a"
+                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '33%' }}  flipX={flipX} flipY={flipY} />
             {/* 87b — top right */}
-            <Handle type="source" position={Position.Top} id="no_b"
-                className="!w-3 !h-3 !bg-blue-400 !border-2 !border-white" style={{ left: '67%' }} />
+            <MirroredHandle type="source" side={Position.Top} id="no_b"
+                className="!w-3 !h-3 !bg-blue-400 !border-2 !border-white" style={{ left: '67%' }}  flipX={flipX} flipY={flipY} />
             {/* 86 (Coil +) */}
-            <Handle type="target" position={Position.Bottom} id="coil_in"
-                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }} />
+            <MirroredHandle type="source" side={Position.Bottom} id="coil_in"
+                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }}  flipX={flipX} flipY={flipY} />
             {/* 30 (COM) */}
-            <Handle type="target" position={Position.Bottom} id="com"
-                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }} />
+            <MirroredHandle type="source" side={Position.Bottom} id="com"
+                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }}  flipX={flipX} flipY={flipY} />
             {/* 85 (Coil -) */}
-            <Handle type="source" position={Position.Bottom} id="coil_out"
-                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }} />
+            <MirroredHandle type="source" side={Position.Bottom} id="coil_out"
+                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }}  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

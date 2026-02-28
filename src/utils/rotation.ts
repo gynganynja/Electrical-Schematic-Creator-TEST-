@@ -1,18 +1,32 @@
 import { Position } from '@xyflow/react';
 
 /**
- * Maps a base handle position (relative to an unrotated component)
- * to its actual position based on the component's rotation.
- * 
- * @param basePos The original position (Left, Right, Top, Bottom)
- * @param rotation Rotation in degrees (0, 90, 180, 270)
- * @returns The physical position to place the handle
+ * Maps a base handle position to its logical mirrored position.
+ * Best Practice: use this for 'position' prop in Handle to match physical world.
+ */
+export function mapSideByFlip(
+    side: Position,
+    flipX: boolean = false,
+    flipY: boolean = false
+): Position {
+    let s = side;
+    if (flipX) {
+        if (s === Position.Left) s = Position.Right;
+        else if (s === Position.Right) s = Position.Left;
+    }
+    if (flipY) {
+        if (s === Position.Top) s = Position.Bottom;
+        else if (s === Position.Bottom) s = Position.Top;
+    }
+    return s;
+}
+
+/**
+ * Legacy rotation mapper. Deprecated in favor of flipping.
  */
 export function getRotationPosition(basePos: Position, rotation: number = 0): Position {
-    const r = ((rotation % 360) + 360) % 360; // Normalize
-
+    const r = ((rotation % 360) + 360) % 360;
     if (r === 0) return basePos;
-
     if (r === 90) {
         switch (basePos) {
             case Position.Left: return Position.Top;
@@ -37,6 +51,10 @@ export function getRotationPosition(basePos: Position, rotation: number = 0): Po
             case Position.Bottom: return Position.Right;
         }
     }
-
     return basePos;
 }
+
+/** 
+ * Backward compatibility alias 
+ */
+export const getMirrorPosition = mapSideByFlip;

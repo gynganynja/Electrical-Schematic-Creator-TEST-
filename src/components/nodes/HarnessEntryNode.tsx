@@ -1,4 +1,6 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 /**
  * Harness Entry Node (Left side).
@@ -7,6 +9,8 @@ import { Handle, Position } from '@xyflow/react';
  * Same-named HarnessEntry + HarnessExit nodes merge electrically (like net labels).
  */
 export function HarnessEntryNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const label = data?.label || 'H001';
     const numPins = Math.min(Math.max(data?.params?.numPins ?? 6, 1), 12);
     const bundleColor = data?.params?.color ?? '#64748b';
@@ -17,9 +21,8 @@ export function HarnessEntryNode({ data, selected }: any) {
     const totalH = pinAreaH + margin * 2;
     const W = 110;
 
-    return (
-        <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]' : ''}`}
-            style={{ width: W, height: totalH }}>
+    return (            <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]' : ''}`}
+            style={{ width: W, height: totalH}}>
             <svg width={W} height={totalH} viewBox={`0 0 ${W} ${totalH}`} fill="none">
                 {/* Background */}
                 <rect x="0" y="0" width={W} height={totalH} rx="4" fill="#0f172a" fillOpacity="0.4" />
@@ -70,11 +73,11 @@ export function HarnessEntryNode({ data, selected }: any) {
                 const y = margin + i * pinSpacing + pinSpacing / 2;
                 const pct = (y / totalH) * 100;
                 return (
-                    <Handle key={`in_${i}`}
-                        type="target" position={Position.Left} id={`pin_${i + 1}`}
+                    <MirroredHandle key={`in_${i}`}
+                        type="target" side={Position.Left} id={`pin_${i + 1}`}
                         className="!w-2.5 !h-2.5 !bg-slate-400 !border-2 !border-white"
                         style={{ top: `${pct}%` }}
-                    />
+                     flipX={flipX} flipY={flipY} />
                 );
             })}
         </div>

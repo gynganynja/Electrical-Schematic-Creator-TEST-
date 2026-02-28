@@ -1,12 +1,15 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 export function InductorNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const inductance = data?.params?.inductance ?? '10mH';
     const label = data?.label || 'L';
 
-    return (
-        <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
-            style={{ width: 65, height: 40 }}>
+    return (            <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
+            style={{ width: 65, height: 40}}>
             <svg width="65" height="40" viewBox="0 0 65 40" fill="none">
                 <line x1="0" y1="20" x2="10" y2="20" stroke="#475569" strokeWidth="2" />
                 <path d="M10,20 C15,5 20,5 22,20 C24,5 29,5 32,20 C34,5 39,5 42,20 C44,5 49,5 52,20"
@@ -17,10 +20,10 @@ export function InductorNode({ data, selected }: any) {
                 {label} {inductance}
             </div>
 
-            <Handle type="target" position={Position.Left} id="in"
-                className="!w-3 !h-3 !bg-violet-400 !border-2 !border-white" />
-            <Handle type="source" position={Position.Right} id="out"
-                className="!w-3 !h-3 !bg-violet-400 !border-2 !border-white" />
+            <MirroredHandle type="target" side={Position.Left} id="in"
+                className="!w-3 !h-3 !bg-violet-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Right} id="out"
+                className="!w-3 !h-3 !bg-violet-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

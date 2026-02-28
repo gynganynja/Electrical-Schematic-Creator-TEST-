@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ComponentType } from '../types/circuit';
-import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag } from 'lucide-react';
+import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag, Thermometer, Droplets, Wind, Network, RotateCw, LayoutTemplate } from 'lucide-react';
 import { EXAMPLE_PROJECTS } from '../examples/circuits';
 import useStore from '../store/useStore';
 
@@ -49,10 +49,24 @@ const PALETTE_ITEMS: PaletteItemProps[] = [
     { type: 'potentiometer', label: 'Potentiometer', icon: <Gauge size={18} /> },
     { type: 'ecu', label: 'ECU Module', icon: <Cpu size={18} /> },
     { type: 'connector', label: 'Connector', icon: <Plug size={18} /> },
+    { type: 'maf_sensor', label: 'MAF Sensor', icon: <Activity size={18} /> },
+    { type: 'temp_sensor', label: 'Temp Sensor', icon: <Thermometer size={18} /> },
+    { type: 'oil_press_sensor', label: 'Oil Pressure', icon: <Droplets size={18} /> },
+    { type: 'air_press_sensor', label: 'Air Pressure', icon: <Wind size={18} /> },
+    { type: 'wss_sensor', label: 'Wheel Speed', icon: <Disc size={18} /> },
+    { type: 'rpm_sensor', label: 'RPM Sensor', icon: <RotateCw size={18} /> },
+    { type: 'speedo_gauge', label: 'Speedometer', icon: <Gauge size={18} /> },
+    { type: 'tacho_gauge', label: 'Tachometer', icon: <Gauge size={18} /> },
+    { type: 'fuel_gauge', label: 'Fuel Gauge', icon: <Activity size={18} /> },
+    { type: 'can_bus', label: 'CAN Bus', icon: <Network size={18} /> },
+    { type: 'can_transceiver', label: 'CAN Transceiver', icon: <Cpu size={18} /> },
+    { type: 'ecu_advanced', label: 'Advanced ECU', icon: <Cpu size={18} /> },
+    { type: 'can_terminator', label: 'CAN Terminator', icon: <ShieldAlert size={18} /> },
     { type: 'net_label', label: 'Net Label', icon: <Tag size={18} /> },
     { type: 'harness_entry', label: 'Harness Entry', icon: <Cable size={18} /> },
     { type: 'harness_exit', label: 'Harness Exit', icon: <Cable size={18} /> },
     { type: 'splice', label: 'Wire Splice', icon: <Circle size={12} className="fill-current" /> },
+    { type: 'schematic_frame', label: 'Schematic Frame', icon: <LayoutTemplate size={18} /> },
 ];
 
 export function Palette() {
@@ -92,9 +106,33 @@ export function Palette() {
                     <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
                 ))}
 
-                {/* Passives */}
-                <SectionHeader>Passives / Sensors</SectionHeader>
+                {/* Passives / ECU */}
+                <SectionHeader>Passives / ECU</SectionHeader>
                 {PALETTE_ITEMS.filter(i => ['capacitor', 'inductor', 'zener', 'potentiometer', 'ecu'].includes(i.type)).map(i => (
+                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
+                ))}
+
+                {/* Sensors */}
+                <SectionHeader>Sensors</SectionHeader>
+                {PALETTE_ITEMS.filter(i => ['maf_sensor', 'temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'wss_sensor', 'rpm_sensor'].includes(i.type)).map(i => (
+                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
+                ))}
+
+                {/* Gauges */}
+                <SectionHeader>Gauges</SectionHeader>
+                {PALETTE_ITEMS.filter(i => ['speedo_gauge', 'tacho_gauge', 'fuel_gauge'].includes(i.type)).map(i => (
+                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
+                ))}
+
+                {/* Networking */}
+                <SectionHeader>Networking / Advanced ECU</SectionHeader>
+                {PALETTE_ITEMS.filter(i => ['can_bus', 'can_transceiver', 'can_terminator', 'ecu_advanced'].includes(i.type)).map(i => (
+                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
+                ))}
+
+                {/* Annotation */}
+                <SectionHeader>Annotation / Export</SectionHeader>
+                {PALETTE_ITEMS.filter(i => ['schematic_frame'].includes(i.type)).map(i => (
                     <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
                 ))}
 

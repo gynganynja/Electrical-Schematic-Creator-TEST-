@@ -1,12 +1,15 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 export function ZenerNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const breakdownV = data?.params?.breakdownVoltage ?? 5.1;
     const label = data?.label || 'ZD';
 
-    return (
-        <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
-            style={{ width: 65, height: 50 }}>
+    return (            <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
+            style={{ width: 65, height: 50}}>
             <svg width="65" height="50" viewBox="0 0 65 50" fill="none">
                 <polygon points="12,10 42,25 12,40" fill="#0f172a" stroke={selected ? '#38bdf8' : '#eab308'} strokeWidth="2.5" />
                 {/* Zener cathode (bent bar) */}
@@ -18,10 +21,10 @@ export function ZenerNode({ data, selected }: any) {
                 {label} {breakdownV}V
             </div>
 
-            <Handle type="target" position={Position.Left} id="anode"
-                className="!w-3 !h-3 !bg-yellow-400 !border-2 !border-white" />
-            <Handle type="source" position={Position.Right} id="cathode"
-                className="!w-3 !h-3 !bg-yellow-400 !border-2 !border-white" />
+            <MirroredHandle type="target" side={Position.Left} id="anode"
+                className="!w-3 !h-3 !bg-yellow-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Right} id="cathode"
+                className="!w-3 !h-3 !bg-yellow-400 !border-2 !border-white"  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

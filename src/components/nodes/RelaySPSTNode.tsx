@@ -1,4 +1,6 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 /**
  * SPST Relay (Normally Open).
@@ -6,6 +8,8 @@ import { Handle, Position } from '@xyflow/react';
  * Pins: 85 (coil-), 86 (coil+), 30 (COM), 87 (NO)
  */
 export function RelaySPSTNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const isEnergized = data?.state?.energized || false;
     const label = data?.label || 'K';
 
@@ -16,9 +20,8 @@ export function RelaySPSTNode({ data, selected }: any) {
     const bodyStroke = selected ? '#38bdf8' : '#334155';
     const textColor = '#94a3b8';
 
-    return (
-        <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
-            style={{ width: W, height: H + 20 }}>
+    return (            <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
+            style={{ width: W, height: H + 20}}>
             <svg width={W} height={H + 20} viewBox={`0 0 ${W} ${H + 20}`} fill="none">
                 <rect x="5" y="5" width={W - 10} height={H - 10} rx="6"
                     fill={bodyColor} stroke={bodyStroke} strokeWidth="1.5" />
@@ -55,17 +58,17 @@ export function RelaySPSTNode({ data, selected }: any) {
             </div>
 
             {/* Pin 87 (NO) — top */}
-            <Handle type="source" position={Position.Top} id="no"
-                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '50%' }} />
+            <MirroredHandle type="source" side={Position.Top} id="no"
+                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '50%' }}  flipX={flipX} flipY={flipY} />
             {/* Pin 86 (Coil +) — bottom left */}
-            <Handle type="target" position={Position.Bottom} id="coil_in"
-                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }} />
+            <MirroredHandle type="target" side={Position.Bottom} id="coil_in"
+                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }}  flipX={flipX} flipY={flipY} />
             {/* Pin 30 (COM) — bottom center */}
-            <Handle type="target" position={Position.Bottom} id="in"
-                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }} />
+            <MirroredHandle type="target" side={Position.Bottom} id="in"
+                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }}  flipX={flipX} flipY={flipY} />
             {/* Pin 85 (Coil -) — bottom right */}
-            <Handle type="source" position={Position.Bottom} id="coil_out"
-                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }} />
+            <MirroredHandle type="source" side={Position.Bottom} id="coil_out"
+                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }}  flipX={flipX} flipY={flipY} />
         </div>
     );
 }

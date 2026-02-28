@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, SkipForward, RotateCcw, RotateCw, Save, FolderOpen, Download, Trash2, LayoutGrid } from 'lucide-react';
+import { Play, Pause, SkipForward, RotateCcw, FlipHorizontal, FlipVertical, Save, FolderOpen, Download, Trash2, LayoutGrid } from 'lucide-react';
 
 interface ToolbarProps {
     simState: 'stopped' | 'running' | 'paused';
@@ -10,12 +10,13 @@ interface ToolbarProps {
     onSave: () => void;
     onLoad: () => void;
     onExport: () => void;
-    onRotate: () => void;
+    onFlipX: () => void;
+    onFlipY: () => void;
     onClearAll: () => void;
     onAutoLayout: () => void;
 }
 
-export function Toolbar({ simState, onRun, onPause, onStep, onReset, onSave, onLoad, onExport, onRotate, onClearAll, onAutoLayout }: ToolbarProps) {
+export function Toolbar({ simState, onRun, onPause, onStep, onReset, onSave, onLoad, onExport, onFlipX, onFlipY, onClearAll, onAutoLayout }: ToolbarProps) {
     return (
         <div className="h-14 border-b border-white/10 bg-slate-900/60 backdrop-blur-md flex items-center px-6 justify-between shrink-0 shadow-lg relative">
             <h1 className="font-bold text-lg text-slate-100 flex items-center gap-2 drop-shadow-sm tracking-tight">
@@ -36,7 +37,8 @@ export function Toolbar({ simState, onRun, onPause, onStep, onReset, onSave, onL
                 <div className="w-px h-6 bg-white/10 mx-2 self-center rounded-full" />
 
                 {/* Edit Controls */}
-                <ToolBtn icon={<RotateCw size={16} />} label="Rotate (R)" onClick={onRotate} />
+                <ToolBtn icon={<FlipHorizontal size={16} />} label="Flip X" onClick={onFlipX} />
+                <ToolBtn icon={<FlipVertical size={16} />} label="Flip Y" onClick={onFlipY} />
                 <ToolBtn icon={<LayoutGrid size={16} />} label="Auto Layout" onClick={onAutoLayout} />
                 <ToolBtn icon={<Trash2 size={16} />} label="Clear All" onClick={onClearAll} danger />
 

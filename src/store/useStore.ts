@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import {
-    addEdge,
     applyNodeChanges,
     applyEdgeChanges,
 } from '@xyflow/react';
@@ -26,10 +25,14 @@ interface CircuitState {
     updateNodeData: (nodeId: string, dataPatch: Record<string, any>) => void;
     updateEdgeData: (edgeId: string, dataPatch: Record<string, any>) => void;
     lastSelectedEdgeId: string | null;
-    rotateSelected: () => void;
+    flipHorizontal: () => void;
+    flipVertical: () => void;
     clearAll: () => void;
     undo: () => void;
     redo: () => void;
+    /** ID of the ECU currently being edited in the Rules Editor */
+    editingECUId: string | null;
+    setEditingECU: (id: string | null) => void;
     /** Save current state to history before a destructive action */
     pushHistory: () => void;
 }
@@ -43,6 +46,9 @@ const useStore = create<CircuitState>((set, get) => ({
     future: [],
     lastSelectedNodeId: null,
     lastSelectedEdgeId: null,
+    editingECUId: null,
+
+    setEditingECU: (id) => set({ editingECUId: id }),
 
     pushHistory: () => {
         const { nodes, edges, past } = get();
@@ -151,11 +157,16 @@ const useStore = create<CircuitState>((set, get) => ({
         };
         const newPast = [...past, snapshot];
         if (newPast.length > MAX_HISTORY) newPast.shift();
+
+        const newEdge = {
+            ...connection,
+            id: `e-${connection.source}-${connection.sourceHandle ?? 'src'}-${connection.target}-${connection.targetHandle ?? 'tgt'}-${Date.now()}`,
+            type: 'wire',
+            data: { resistance: 0.001 },
+        };
+
         set({
-            edges: addEdge(
-                { ...connection, data: { resistance: 0.001 } },
-                edges
-            ),
+            edges: [...edges, newEdge],
             past: newPast,
             future: [],
         });
@@ -203,7 +214,7 @@ const useStore = create<CircuitState>((set, get) => ({
             }),
         });
     },
-    rotateSelected: () => {
+    flipHorizontal: () => {
         const { nodes, edges, past } = get();
         const hasSelected = nodes.some(n => n.selected);
         if (!hasSelected) return;
@@ -219,14 +230,41 @@ const useStore = create<CircuitState>((set, get) => ({
             nodes: nodes.map((node) => {
                 if (node.selected) {
                     const oldData = node.data as any;
-                    const newRotation = ((oldData.rotation || 0) + 90) % 360;
-
-                    // Don't modify style at all to avoid clearing position transforms
                     return {
                         ...node,
                         data: {
                             ...oldData,
-                            rotation: newRotation,
+                            flipX: !oldData.flipX,
+                        },
+                    };
+                }
+                return node;
+            }),
+            past: newPast,
+            future: [],
+        });
+    },
+    flipVertical: () => {
+        const { nodes, edges, past } = get();
+        const hasSelected = nodes.some(n => n.selected);
+        if (!hasSelected) return;
+
+        const snapshot = {
+            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
+            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
+        };
+        const newPast = [...past, snapshot];
+        if (newPast.length > MAX_HISTORY) newPast.shift();
+
+        set({
+            nodes: nodes.map((node) => {
+                if (node.selected) {
+                    const oldData = node.data as any;
+                    return {
+                        ...node,
+                        data: {
+                            ...oldData,
+                            flipY: !oldData.flipY,
                         },
                     };
                 }

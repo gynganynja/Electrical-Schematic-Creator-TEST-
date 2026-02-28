@@ -44,7 +44,21 @@ export type ComponentType =
     | 'connector'
     | 'net_label'
     | 'harness_entry'
-    | 'harness_exit';
+    | 'harness_exit'
+    | 'maf_sensor'
+    | 'temp_sensor'
+    | 'oil_press_sensor'
+    | 'air_press_sensor'
+    | 'wss_sensor'
+    | 'rpm_sensor'
+    | 'speedo_gauge'
+    | 'tacho_gauge'
+    | 'fuel_gauge'
+    | 'can_bus'
+    | 'can_transceiver'
+    | 'can_terminator'
+    | 'ecu_advanced'
+    | 'schematic_frame';
 
 // Terminal definitions by component type
 export type TerminalId = string;

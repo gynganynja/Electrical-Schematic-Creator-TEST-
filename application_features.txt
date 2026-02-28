@@ -1,0 +1,51 @@
+# Circuit Generator - Comprehensive Feature List & Implementation Details
+
+## 1. Core Simulation Engine (Modified Nodal Analysis)
+*   **Feature**: Real-time electrical simulation of complex circuits.
+*   **Implementation**:
+    *   **MNA Solver**: Uses Modified Nodal Analysis to solve for node voltages and branch currents. It constructs a system of linear equations (Ax = z) using a conductance matrix (G) and a voltage-source stamping matrix (B).
+    *   **Iterative Solving**: To handle non-linear and stateful components (like relays and fuses), the engine runs an iterative loop (up to 20 iterations). It solves the linear system, checks if component states changed (e.g., a relay energized), updates states, and re-solves until stability is reached.
+    *   **Union-Find Net Mapping**: Uses a Union-Find algorithm to group connected handles into "nets." This reduces the complexity of the matrix by treating all wires/splices between components as a single electrical node.
+
+## 2. Dynamic Component Library (51+ Nodes)
+The application features a vast array of automotive and electronic components, each with unique simulation logic.
+
+### Power & Ground
+*   **Battery**: Modeled as an ideal voltage source in series with an internal resistance.
+*   **Ground**: Defines the 0V reference point for the MNA solver.
+
+### Protection Devices
+*   **Fuses & Fusible Links**: Monitor branch current. If current exceeds `tripCurrent`, the state switches to `blown: true`, which the solver then replaces with a high-resistance (100MΩ) air gap.
+*   **Breakers (Manual/Auto)**: Similar to fuses but with different reset logic. Auto-breakers include internal timers for thermal reset simulation.
+*   **TVS Clamps & Diodes**: Implement basic forward-voltage drops (0.7V) and breakdown voltage mapping.
+
+### Switching & Control
+*   **Relays (SPST, SPDT, Latching, Dual 87)**: Modeled as a resistive coil that, when energized (voltage > pull-in), flips the internal switch handles. Latching relays maintain state without constant power on the SET/RESET pins.
+*   **Delay Relays**: Include internal logic to postpone state changes (On-Delay/Off-Delay).
+*   **Ignition & Multi-Pole Switches**: Complex switching nodes that map multiple inputs to multiple outputs based on internal state positions.
+
+### Sensors & Monitoring
+*   **Sensors (Temp, MAF, Pressure, WSS)**: These nodes include UI sliders that update node state values. The solver then maps these values to electrical parameters (e.g., NTC thermistor resistance curves or variable voltage sources for MAP/MAF sensors).
+*   **Analog Gauges (Speedo, Tacho, Fuel)**: High-fidelity SVG components that calculate needle rotation based on input voltage (0-12V range).
+
+### Logic & Processing
+*   **ECU Module**: A programmable logic controller. Users can define rules (e.g., "If Input1 > 5V, then turn on Output1"). The solver evaluates these rules on every iteration.
+
+## 3. Harness & Wiring System
+*   **Feature**: Management of complex wiring looms.
+*   **Implementation**:
+    *   **Harness Entry/Exit**: Allows "teleporting" nets between two points. The solver identifies Entry/Exit nodes with matching labels and merges their internal pin nets, simulating a physical wire harness.
+    *   **Net Labels**: Named labels that merge any nets sharing the same name throughout the entire project.
+
+## 4. Interactive UX Features
+*   **Splice Auto-Splitting**: Dropping a Splice node directly onto an existing wire edge triggers an auto-split logic in `CircuitCanvas.tsx`, deleting the old edge and creating two new ones connecting the components to the splice.
+*   **Real-time Wire Coloring**: Based on solver results, wires are colored to represent their state: Red (B+), Green (Ground), Orange (Switched), and Blue (Signal). Floating or open nets are Grey.
+*   **Current Flow Animation**: Edges become animated (marching ants effect) when the solver detects a voltage differential across a low-resistance path, indicating active current flow.
+*   **Undo/Redo History**: A Zustand-managed stack that captures snapshots of node/edge states (limited to 50 deep) to allow non-destructive editing.
+*   **Auto Layout**: Integrated `autoLayout` utility that uses a tree-based positioning algorithm to organize messy circuits.
+*   **PDF Export**: Captures the current canvas SVG and wraps it in a PDF document using `jspdf` for documentation purposes.
+*   **Save/Load**: Serializes the React Flow graph into a custom JSON format for persistence.
+
+## 5. Visual Fidelity
+*   **Component Design**: Custom-themed nodes using Lucide icons and Tailwind CSS for a premium "dark mode" automotive aesthetic.
+*   **Live States**: Lamp nodes glow when powered, motors rotate, and indicators (LEDs) change color based on the simulation state.

@@ -1,4 +1,6 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
+
 
 /**
  * Flasher / Blinker timer relay.
@@ -6,12 +8,13 @@ import { Handle, Position } from '@xyflow/react';
  * Handles: in (power), out (flashing output)
  */
 export function FlasherNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const label = data?.label || 'Flasher';
     const on = data?.state?.outputOn || false;
 
-    return (
-        <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
-            style={{ width: 70, height: 70 }}>
+    return (            <div className={`relative transition-all ${selected ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]' : ''}`}
+            style={{ width: 70, height: 70}}>
             <svg width="70" height="70" viewBox="0 0 70 70" fill="none" className={on ? 'drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]' : ''}>
                 {/* Body */}
                 <rect x="5" y="5" width="60" height="60" rx="6" fill={on ? '#f59e0b' : '#0f172a'} stroke={selected ? '#38bdf8' : '#334155'} strokeWidth="2.5" />
@@ -24,8 +27,8 @@ export function FlasherNode({ data, selected }: any) {
                     {on ? '●' : '○'}
                 </span>
             </div>
-            <Handle type="target" position={Position.Left} id="in" className="!w-3 !h-3 !bg-red-400 !border-2 !border-white" />
-            <Handle type="source" position={Position.Right} id="out" className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white" />
+            <MirroredHandle type="target" side={Position.Left} id="in" className="!w-3 !h-3 !bg-red-400 !border-2 !border-white" flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Right} id="out" className="!w-3 !h-3 !bg-amber-400 !border-2 !border-white" flipX={flipX} flipY={flipY} />
         </div>
     );
 }

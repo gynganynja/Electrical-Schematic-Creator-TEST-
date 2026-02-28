@@ -39,6 +39,7 @@ export interface SolveResult {
     edgeUpdates: EdgeUpdate[];
     events: SimEvent[];
     nodeVoltages: Record<string, number>;
+    netMap: Record<string, string>;
 }
 
 // ----- Internal netlist types -----
@@ -88,8 +89,8 @@ function buildNets(nodes: CircuitNode[], edges: CircuitEdge[]): Record<string, s
 
     // Union terminals connected by edges (wires)
     for (const edge of edges) {
-        const sourceKey = `${edge.source}:${edge.sourceHandle || 'out'}`;
-        const targetKey = `${edge.target}:${edge.targetHandle || 'in'}`;
+        const sourceKey = `${edge.source}:${(edge.sourceHandle || 'out').toLowerCase()}`;
+        const targetKey = `${edge.target}:${(edge.targetHandle || 'in').toLowerCase()}`;
         union(sourceKey, targetKey);
     }
 
@@ -102,7 +103,7 @@ function buildNets(nodes: CircuitNode[], edges: CircuitEdge[]): Record<string, s
     return netMap;
 }
 
-function getTerminals(type: string, data?: any): string[] {
+function getTerminals(type: string, _data?: any): string[] {
     switch (type) {
         case 'battery': return ['positive', 'negative'];
         case 'ground': return ['gnd'];
@@ -123,6 +124,8 @@ function getTerminals(type: string, data?: any): string[] {
         case 'capacitor':
         case 'inductor': return ['in', 'out'];
         case 'wiper_motor': return ['in', 'out', 'park'];
+        case 'diode':
+        case 'led':
         case 'tvs_clamp':
         case 'zener': return ['anode', 'cathode'];
         case 'potentiometer': return ['a', 'b', 'wiper'];
@@ -132,56 +135,35 @@ function getTerminals(type: string, data?: any): string[] {
         case 'relay_spst': return ['coil_in', 'coil_out', 'in', 'no'];
         case 'relay_dual87': return ['coil_in', 'coil_out', 'com', 'no_a', 'no_b'];
         case 'relay_latching': return ['set_in', 'set_out', 'reset_in', 'reset_out', 'com', 'no'];
+        case 'battery': return ['positive', 'negative'];
+        case 'ground': return ['gnd'];
+        case 'splice': return ['t', 'r', 'b', 'l', 't_out', 'r_out', 'b_out', 'l_out'];
+        case 'switch_spdt': return ['com', 'out_nc', 'out_no'];
+        case 'switch_dpdt': return ['in_a', 'out_a_nc', 'out_a_no', 'in_b', 'out_b_nc', 'out_b_no'];
+        case 'switch_ignition': return ['batt', 'acc', 'ign', 'start'];
         case 'motor':
         case 'lamp':
         case 'buzzer':
         case 'solenoid':
         case 'heater':
         case 'compressor_clutch':
-        case 'flasher': return ['in', 'out'];
-        case 'led':
-        case 'diode': return ['anode', 'cathode'];
-        case 'switch_spdt': return ['com', 'out_nc', 'out_no'];
-        case 'switch_dpdt': return ['in_a', 'out_a_nc', 'out_a_no', 'in_b', 'out_b_nc', 'out_b_no'];
-        case 'switch_ignition': return ['batt', 'acc', 'ign', 'start'];
-        case 'ecu': {
-            const ni = data?.params?.numInputs ?? 4;
-            const no = data?.params?.numOutputs ?? 4;
-            const terms = ['vcc', 'gnd'];
-            for (let i = 1; i <= ni; i++) terms.push(`in${i}`);
-            for (let i = 1; i <= no; i++) terms.push(`out${i}`);
-            return terms;
+        case 'temp_sensor':
+        case 'oil_press_sensor':
+        case 'air_press_sensor':
+        case 'wss_sensor':
+        case 'rpm_sensor':
+        case 'speedo_gauge':
+        case 'tacho_gauge':
+        case 'fuel_gauge': return ['in', 'out'];
+        case 'maf_sensor': return ['vcc', 'gnd', 'out'];
+        case 'can_bus': return ['can_h_l', 'can_h_r', 'can_l_l', 'can_l_r'];
+        case 'can_transceiver': return ['vcc', 'gnd', 'txd', 'rxd', 'can_h', 'can_l', 'en'];
+        case 'can_terminator': return ['can_h', 'can_l'];
+        case 'ecu_advanced': {
+            const inputs = (Array.isArray(_data?.params?.inputs) ? _data.params.inputs : ['in1', 'in2']).map((s: string) => s.toLowerCase());
+            const outputs = (Array.isArray(_data?.params?.outputs) ? _data.params.outputs : ['out1', 'out2']).map((s: string) => s.toLowerCase());
+            return ['vcc', 'gnd', 'txd', 'rxd', ...inputs, ...outputs];
         }
-        case 'connector': {
-            const pins = data?.params?.numPins ?? 4;
-            const cterms: string[] = [];
-            for (let i = 1; i <= pins; i++) { cterms.push(`in${i}`); cterms.push(`out${i}`); }
-            return cterms;
-        }
-        case 'net_label': return ['in', 'out'];
-        case 'harness_entry':
-        case 'harness_exit': {
-            const hPins = data?.params?.numPins ?? 6;
-            const hterms: string[] = [];
-            for (let i = 1; i <= hPins; i++) hterms.push(`pin_${i}`);
-            return hterms;
-        }
-        case 'switch_spdt': return ['com', 'out_nc', 'out_no'];
-        case 'switch_dpdt': return ['in_a', 'out_a_nc', 'out_a_no', 'in_b', 'out_b_nc', 'out_b_no'];
-        case 'switch_ignition': return ['batt', 'acc', 'ign', 'start'];
-        case 'relay_spdt':
-        case 'relay_delay_on':
-        case 'relay_delay_off': return ['coil_in', 'coil_out', 'com', 'nc', 'no'];
-        case 'relay_spst': return ['coil_in', 'coil_out', 'in', 'no'];
-        case 'relay_dual87': return ['coil_in', 'coil_out', 'com', 'no_a', 'no_b'];
-        case 'relay_latching': return ['set_in', 'set_out', 'reset_in', 'reset_out', 'com', 'no'];
-        case 'splice': return ['t', 'r', 'b', 'l', 't_out', 'r_out', 'b_out', 'l_out'];
-        case 'motor':
-        case 'led':
-        case 'buzzer':
-        case 'solenoid': return ['in', 'out'];
-        case 'diode': return ['anode', 'cathode'];
-        case 'flasher': return ['in', 'out'];
         default: return ['in', 'out'];
     }
 }
@@ -191,7 +173,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
 
     for (const node of nodes) {
         const d = node.data as any;
-        const net = (handle: string) => netMap[`${node.id}:${handle}`] || `__floating_${node.id}_${handle}`;
+        const net = (handle: string) => { const h = handle.toLowerCase(); return netMap[`${node.id}:${h}`] || `__floating_${node.id}_${h}`; };
 
         switch (d.type) {
             case 'battery': {
@@ -605,19 +587,20 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- Diode: low resistance forward, very high reverse ----
-            case 'diode':
-                // Simplified: always forward-biased with small resistance
-                // A real diode model would check polarity each iteration
+            // ---- Diode: polarity-aware iterative model ----
+            // forward=true (default) → 0.01Ω; reverse → 1e9Ω (open)
+            case 'diode': {
+                const diodeFwd = (d as any).state?.forward !== false;
                 components.push({
                     nodeId: node.id,
                     type: 'resistor',
                     n1: net('anode'),
                     n2: net('cathode'),
-                    value: 0.01,  // near-zero forward resistance
+                    value: diodeFwd ? 0.01 : 1e9,
                     data: d,
                 });
                 break;
+            }
 
             // ---- Wiper Motor (3-pin model: in, out, park) ----
             case 'wiper_motor': {
@@ -798,8 +781,9 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
             case 'potentiometer': {
                 const totalR = d.params?.resistance ?? 10000;
                 const pos = d.state?.position ?? 50;
-                const rAW = (totalR * pos / 100) || 0.001;
-                const rWB = (totalR * (100 - pos) / 100) || 0.001;
+                // pos=100 means wiper is closest to 'a'. So rAW is minimum.
+                const rAW = (totalR * (100 - pos) / 100) || 0.001;
+                const rWB = (totalR * pos / 100) || 0.001;
                 components.push({
                     nodeId: node.id + '_aw',
                     type: 'resistor',
@@ -823,16 +807,55 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
             case 'ecu': {
                 const ni = d.params?.numInputs ?? 4;
                 const no = d.params?.numOutputs ?? 4;
-                // Inputs are high-impedance sense lines (1MΩ to internal ground)
+                const inputPulls = d.params?.inputPulls || {};
+                const inputPullVoltages = d.params?.inputPullVoltages || {};
+                const PULL_R = 4700; // 4.7 kΩ — typical automotive pull resistor
+                // Inputs: sense + optional pull-up/pull-down
                 for (let i = 1; i <= ni; i++) {
-                    components.push({
-                        nodeId: node.id + `_sense${i}`,
-                        type: 'resistor',
-                        n1: net(`in${i}`),
-                        n2: net('gnd'),
-                        value: 1e6, // High impedance input
-                        data: d,
-                    });
+                    const pinId = `in${i}`;
+                    const pull = inputPulls[pinId] || 'none';
+                    const pullV = Number(inputPullVoltages[pinId] ?? 12);
+                    if (pull === 'pullup') {
+                        // Pull-up: internal vsource to '0' (absolute ground) + 4.7kΩ to pin
+                        // No separate sense resistor needed — pull-R already anchors the net
+                        const pullNet = node.id + `_pullvcc${i}`;
+                        components.push({
+                            nodeId: node.id + `_pullvsrc${i}`,
+                            type: 'vsource',
+                            n1: pullNet,
+                            n2: '0',
+                            value: pullV,
+                            data: d,
+                        });
+                        components.push({
+                            nodeId: node.id + `_pull${i}`,
+                            type: 'resistor',
+                            n1: pullNet,
+                            n2: net(pinId),
+                            value: PULL_R,
+                            data: d,
+                        });
+                    } else if (pull === 'pulldown') {
+                        // Pull-down: 4.7kΩ from pin to absolute ground
+                        components.push({
+                            nodeId: node.id + `_pull${i}`,
+                            type: 'resistor',
+                            n1: net(pinId),
+                            n2: '0',
+                            value: PULL_R,
+                            data: d,
+                        });
+                    } else {
+                        // No pull: high-impedance sense to ECU gnd
+                        components.push({
+                            nodeId: node.id + `_sense${i}`,
+                            type: 'resistor',
+                            n1: net(pinId),
+                            n2: net('gnd'),
+                            value: 1e6,
+                            data: d,
+                        });
+                    }
                 }
                 // Outputs: if rule says active, path to chosen rail (VCC or GND); else check mode
                 const outputStates = (d as any).state?.outputs || {};
@@ -903,6 +926,324 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
             // ---- Net Label: no components, handled by net merging ----
             case 'net_label':
                 break;
+
+            // ---- Temp Sensor: Linear voltage output (0.5-4.5V over min..max range) ----
+            case 'temp_sensor': {
+                const temp = d.state?.temperature ?? 25;
+                const minTemp = (d as any).params?.minVal ?? -40;
+                const maxTemp = (d as any).params?.maxVal ?? 150;
+                const vMin = (d as any).params?.vMin ?? 0.5;
+                const vMax = (d as any).params?.vMax ?? 4.5;
+                const vOut = vMin + ((temp - minTemp) / (maxTemp - minTemp)) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id,
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('in'),
+                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- Oil Pressure Sensor: Linear voltage output (0.5-4.5V over 0..maxPress) ----
+            case 'oil_press_sensor': {
+                const press = d.state?.pressure ?? 40;
+                const maxPress = (d as any).params?.maxVal ?? 100;
+                const vMin = (d as any).params?.vMin ?? 0.5;
+                const vMax = (d as any).params?.vMax ?? 4.5;
+                const vOut = vMin + (press / maxPress) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id,
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('in'),
+                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- Air Pressure Sensor: MAP Sensor (Voltage Output, 3-wire: in=ref, out=signal) ----
+            case 'air_press_sensor': {
+                const press = d.state?.pressure ?? 101.3;
+                const maxPress = (d as any).params?.maxVal ?? 250;
+                const vMin = (d as any).params?.vMin ?? 0.5;
+                const vMax = (d as any).params?.vMax ?? 4.5;
+                const vOut = vMin + (press / maxPress) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id,
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('in'),
+                    value: Math.max(0, vOut),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- MAF Sensor: 3-wire (VCC, GND, OUT) ----
+            case 'maf_sensor': {
+                const flow = d.state?.flow ?? 5;
+                const maxFlow = (d as any).params?.maxVal ?? 500;
+                const vMin = (d as any).params?.vMin ?? 1.0;
+                const vMax = (d as any).params?.vMax ?? 5.0;
+                const vOut = vMin + (flow / maxFlow) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id + '_pwr',
+                    type: 'resistor',
+                    n1: net('vcc'),
+                    n2: net('gnd'),
+                    value: 1000,
+                    data: d,
+                });
+                components.push({
+                    nodeId: node.id + '_out',
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('gnd'),
+                    value: Math.max(0, vOut),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- Wheel Speed Sensor: VR Generator (in=ref/gnd, out=signal) ----
+            case 'wss_sensor': {
+                const speed = d.state?.speed ?? 0;
+                const maxSpeed = (d as any).params?.maxVal ?? 300;
+                const vMin = (d as any).params?.vMin ?? 0;
+                const vMax = (d as any).params?.vMax ?? 12;
+                const vOut = vMin + (speed / maxSpeed) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id,
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('in'),
+                    value: Math.max(0, vOut),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- RPM Sensor: Linear voltage output (0.5-4.5V over 0..maxRPM) ----
+            case 'rpm_sensor': {
+                const rpm = d.state?.rpm ?? 0;
+                const maxRpm = (d as any).params?.maxVal ?? 8000;
+                const vMin = (d as any).params?.vMin ?? 0.5;
+                const vMax = (d as any).params?.vMax ?? 4.5;
+                const vOut = vMin + (rpm / maxRpm) * (vMax - vMin);
+                components.push({
+                    nodeId: node.id,
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('in'),
+                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- Gauges: Voltage Sense lines (High-Z) ----
+            case 'speedo_gauge':
+            case 'tacho_gauge':
+            case 'fuel_gauge': {
+                components.push({
+                    nodeId: node.id + '_sense',
+                    type: 'resistor',
+                    n1: net('in'),
+                    n2: net('gnd'),
+                    value: 1e6, // High impedance sense
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- CAN Networking Components ----
+            case 'can_terminator': {
+                components.push({
+                    nodeId: node.id + '_term',
+                    type: 'resistor',
+                    n1: net('can_h'),
+                    n2: net('can_l'),
+                    value: 120,
+                    data: d,
+                });
+                break;
+            }
+
+            case 'ecu_advanced': {
+                // Power sink (VCC to absolute ground)
+                components.push({
+                    nodeId: node.id + '_pwr',
+                    type: 'resistor',
+                    n1: net('vcc'),
+                    n2: '0',
+                    value: 1000,
+                    data: d,
+                });
+                // Inputs: high-impedance sense (1MΩ) + optional pull-up/pull-down
+                const inputs = Array.isArray(d.params?.inputs) ? d.params.inputs : ['in1', 'in2'];
+                const advInputPulls = d.params?.inputPulls || {};
+                const advInputPullVoltages = d.params?.inputPullVoltages || {};
+                const ADV_PULL_R = 4700; // 4.7 kΩ
+                inputs.forEach((pinName: string, idx: number) => {
+                    const pull = advInputPulls[pinName] || 'none';
+                    const pullV = Number(advInputPullVoltages[pinName] ?? 12);
+                    if (pull === 'pullup') {
+                        const pullNet = `${node.id}_pullvcc_${pinName}`;
+                        components.push({
+                            nodeId: `${node.id}_pullvsrc_${pinName}`,
+                            type: 'vsource',
+                            n1: pullNet,
+                            n2: '0',
+                            value: pullV,
+                            data: d,
+                        });
+                        components.push({
+                            nodeId: `${node.id}_pull_${pinName}`,
+                            type: 'resistor',
+                            n1: pullNet,
+                            n2: net(pinName),
+                            value: ADV_PULL_R,
+                            data: d,
+                        });
+                    } else if (pull === 'pulldown') {
+                        components.push({
+                            nodeId: `${node.id}_pull_${pinName}`,
+                            type: 'resistor',
+                            n1: net(pinName),
+                            n2: '0',
+                            value: ADV_PULL_R,
+                            data: d,
+                        });
+                    } else {
+                        components.push({
+                            nodeId: `${node.id}_sense_${pinName}_${idx}`,
+                            type: 'resistor',
+                            n1: net(pinName),
+                            n2: '0',
+                            value: 1e6,
+                            data: d,
+                        });
+                    }
+                });
+
+                // Outputs based on logic state
+                const outputNames = Array.isArray(d.params?.outputs) ? d.params.outputs : ['out1', 'out2'];
+                const outputStates = d.state?.outputs || {};
+                outputNames.forEach((pin: string) => {
+                    const val = outputStates[pin];
+                    if (typeof val === 'number' && !isNaN(val)) {
+                        // Drive to voltage relative to absolute ground
+                        components.push({
+                            nodeId: node.id + '_out_' + pin,
+                            type: 'vsource',
+                            n1: net(pin),
+                            n2: '0',
+                            value: val,
+                            data: d,
+                        });
+                    } else {
+                        // High-Z: output not driven, add pulldown to prevent floating net
+                        components.push({
+                            nodeId: node.id + '_out_' + pin,
+                            type: 'resistor',
+                            n1: net(pin),
+                            n2: '0',
+                            value: 1e9,
+                            data: d,
+                        });
+                    }
+                });
+                break;
+            }
+
+            case 'can_transceiver': {
+                // Pin mapping for MNA
+                // We model the transceiver as high-impedance loads on the bus
+                // and a power-sink resistor for VCC/GND
+                components.push({
+                    nodeId: node.id + '_pwr',
+                    type: 'resistor',
+                    n1: net('vcc'),
+                    n2: net('gnd'),
+                    value: 1000, // 1k load
+                    data: d,
+                });
+                const isTransmitting = d.state?.isTransmitting;
+
+                if (isTransmitting) {
+                    // Dominant State: Actively drive CAN_H to 3.5V and CAN_L to 1.5V
+                    components.push({
+                        nodeId: node.id + '_h_drv',
+                        type: 'vsource',
+                        n1: net('can_h'),
+                        n2: net('gnd'),
+                        value: 3.5, // Dominant High
+                        data: d,
+                    });
+                    components.push({
+                        nodeId: node.id + '_l_drv',
+                        type: 'vsource',
+                        n1: net('can_l'),
+                        n2: net('gnd'),
+                        value: 1.5, // Dominant Low
+                        data: d,
+                    });
+                } else {
+                    // Recessive State: Float around 2.5V with high impedance 
+                    // (Actual bus gets pulled strongly to 2.5V by terminators, but we model weak transceiver bias)
+                    // We'll use a resistor to 2.5V (can't easily do a V-source with series R in MNA if not modeled specifically, 
+                    // so we do a simple high-Z path to ground and rely on bus biasing or assume 2.5V)
+                    // Let's actually model it as a thevenin equivalent if we had vsource+R, 
+                    // but for MNA simplicity with pure vsource/resistor components, we can just use 100k resistors to ground.
+                    // To actually bias to 2.5V, we would need an internal node. 
+                    // For now, let's just make it high-Z and let the App.tsx simulation read it. 
+                    // Wait, if we want to SEE 2.5V, let's just provide a weak 2.5V source (we don't have series resistance easily without extra nodes)
+                    // Let's use a 100k ohm resistor to a 2.5V node? Too complex. 
+                    // We'll just leave it high-Z and if nothing drives it, MNA might read 0V or undefined.
+                    // Let's just do a 1M to Ground for recessive for now so matrix doesn't become singular.
+                    components.push({
+                        nodeId: node.id + '_h_z',
+                        type: 'resistor',
+                        n1: net('can_h'),
+                        n2: net('gnd'),
+                        value: 1e6,
+                        data: d,
+                    });
+                    components.push({
+                        nodeId: node.id + '_l_z',
+                        type: 'resistor',
+                        n1: net('can_l'),
+                        n2: net('gnd'),
+                        value: 1e6,
+                        data: d,
+                    });
+                }
+                break;
+            }
+
+            case 'can_bus': {
+                // Bridge left and right pins for CAN_H and CAN_L
+                components.push({
+                    nodeId: node.id + '_h_bridge',
+                    type: 'resistor',
+                    n1: net('can_h_l'),
+                    n2: net('can_h_r'),
+                    value: 0.001,
+                    data: d,
+                });
+                components.push({
+                    nodeId: node.id + '_l_bridge',
+                    type: 'resistor',
+                    n1: net('can_l_l'),
+                    n2: net('can_l_r'),
+                    value: 0.001,
+                    data: d,
+                });
+                break;
+            }
 
             // ---- Harness Entry/Exit: no local components, handled by harness net merging ----
             case 'harness_entry':
@@ -1037,7 +1378,7 @@ function solveMNA(
         return { voltages, currents };
     } catch (e) {
         // Singular matrix — likely open circuit or floating net
-        console.warn('MNA solve failed:', e);
+        console.error('MNA solve failed:', e);
         return { voltages: {}, currents: {} };
     }
 }
@@ -1052,7 +1393,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
     const edgeUpdates: EdgeUpdate[] = [];
 
     if (nodes.length === 0) {
-        return { nodeUpdates, edgeUpdates, events, nodeVoltages: {} };
+        return { nodeUpdates, edgeUpdates, events, nodeVoltages: {}, netMap: {} };
     }
 
     const netMap = buildNets(nodes, edges);
@@ -1145,7 +1486,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
     // If no ground, we can't solve
     if (groundNets.size === 0) {
         events.push({ level: 'warn', message: 'No ground node found. Add a ground to complete the circuit.' });
-        return { nodeUpdates, edgeUpdates, events, nodeVoltages: {} };
+        return { nodeUpdates, edgeUpdates, events, nodeVoltages: {}, netMap };
     }
 
     // Clone node states for iteration
@@ -1334,6 +1675,18 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 }
             }
 
+            // Diode polarity check — flip forward/reverse state each iteration
+            if ((d as any).type === 'diode') {
+                const vAnode    = voltages[netMap[`${node.id}:anode`]]   ?? 0;
+                const vCathode  = voltages[netMap[`${node.id}:cathode`]] ?? 0;
+                const wasFwd    = nodeStates[node.id]?.forward !== false;
+                const nowFwd    = vAnode > vCathode;
+                if (wasFwd !== nowFwd) {
+                    nodeStates[node.id] = { ...nodeStates[node.id], forward: nowFwd };
+                    stateChanged = true;
+                }
+            }
+
             // Wiper motor park logic (Static check for iteration)
             if ((d as any).type === 'wiper_motor') {
                 const pos = nodeStates[node.id]?.pos ?? 0;
@@ -1356,24 +1709,29 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
         const newState = nodeStates[node.id];
         const oldState = (d as any).state;
 
-        // Lamp on/off
+        // Lamp on/off + proportional brightness
         if (d.type === 'lamp') {
             const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
             const voltageDrop = Math.abs(vIn - vOut);
-            const isOn = voltageDrop > 0.5;
-            if (isOn !== oldState?.on) {
-                nodeUpdates.push({ id: node.id, data: { state: { ...newState, on: isOn } } as any });
+            const ratedVoltage = (d as any).params?.ratedVoltage ?? 12;
+            const brightness = voltageDrop < 0.5 ? 0 : Math.min(1, voltageDrop / ratedVoltage);
+            const isOn = brightness > 0;
+            if (isOn !== oldState?.on || Math.abs((oldState?.brightness ?? 0) - brightness) > 0.01) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, on: isOn, brightness } } as any });
             }
         }
 
-        // Motor running
+        // Motor running + proportional speed
         if ((d as any).type === 'motor') {
             const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
-            const isRunning = Math.abs(vIn - vOut) > 0.5;
-            if (isRunning !== oldState?.running) {
-                nodeUpdates.push({ id: node.id, data: { state: { ...newState, running: isRunning } } as any });
+            const voltageDrop = Math.abs(vIn - vOut);
+            const ratedVoltage = (d as any).params?.ratedVoltage ?? 12;
+            const speedRatio = voltageDrop < 0.5 ? 0 : Math.min(1, voltageDrop / ratedVoltage);
+            const isRunning = speedRatio > 0;
+            if (isRunning !== oldState?.running || Math.abs((oldState?.speedRatio ?? 0) - speedRatio) > 0.01) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, running: isRunning, speedRatio } } as any });
             }
         }
 
@@ -1394,14 +1752,6 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
             if (JSON.stringify(updatedState) !== JSON.stringify(oldState)) {
                 nodeUpdates.push({ id: node.id, data: { state: updatedState } as any });
-
-                // Add debug event to show what's happening in the console
-                if (isRunning || pos === 0) {
-                    events.push({
-                        level: 'info',
-                        message: `Wiper ${d.label}: pos=${pos}, running=${isRunning}, park=${parkClosed} (Vdiff=${Math.abs(vIn - vOut).toFixed(1)}V)`
-                    });
-                }
             }
         }
 
@@ -1447,6 +1797,38 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
+        // Potentiometer: write back wiper voltage for UI display
+        if ((d as any).type === 'potentiometer') {
+            const wiperVoltage = voltages[netMap[`${node.id}:wiper`]] ?? undefined;
+            if (wiperVoltage !== oldState?.wiperVoltage) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, wiperVoltage } } as any });
+            }
+        }
+
+        // Gauges, Sensors & Networking: Update voltage/value state for UI display
+        if (['speedo_gauge', 'tacho_gauge', 'fuel_gauge', 'temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'maf_sensor', 'wss_sensor', 'rpm_sensor', 'can_transceiver', 'ecu_advanced'].includes(d.type as string)) {
+            const vIn = voltages[netMap[`${node.id}:vcc`]] ?? voltages[netMap[`${node.id}:in`]] ?? voltages[netMap[`${node.id}:out`]] ?? 0;
+            const vGnd = voltages[netMap[`${node.id}:gnd`]] ?? 0;
+            const voltage = Math.abs(vIn - vGnd);
+
+            const vH = voltages[netMap[`${node.id}:can_h`]] ?? 0;
+            const vL = voltages[netMap[`${node.id}:can_l`]] ?? 0;
+
+            if (voltage !== oldState?.vcc || vH !== oldState?.vH || vL !== oldState?.vL) {
+                nodeUpdates.push({
+                    id: node.id,
+                    data: {
+                        state: {
+                            ...newState,
+                            vcc: voltage,
+                            vH,
+                            vL
+                        }
+                    } as any
+                });
+            }
+        }
+
         // Programmable Node state updates (ECU, Relays, etc.)
         if (['ecu', 'relay_spdt', 'relay_spst', 'relay_dual87', 'relay_latching', 'relay_delay_on', 'relay_delay_off', 'fuse', 'fusible_link', 'breaker_manual', 'breaker_auto'].includes(d.type as string)) {
             if (JSON.stringify(newState) !== JSON.stringify(oldState)) {
@@ -1457,8 +1839,8 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
     // Build edge updates (wire coloring)
     for (const edge of edges) {
-        const sourceNet = netMap[`${edge.source}:${edge.sourceHandle || 'out'}`];
-        const targetNet = netMap[`${edge.target}:${edge.targetHandle || 'in'}`];
+        const sourceNet = netMap[`${edge.source}:${(edge.sourceHandle || 'out').toLowerCase()}`];
+        const targetNet = netMap[`${edge.target}:${(edge.targetHandle || 'in').toLowerCase()}`];
         const vSource = voltages[sourceNet] ?? null;
         const vTarget = voltages[targetNet] ?? null;
 
@@ -1499,5 +1881,5 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
         });
     }
 
-    return { nodeUpdates, edgeUpdates, events, nodeVoltages: voltages };
+    return { nodeUpdates, edgeUpdates, events, nodeVoltages: voltages, netMap };
 }

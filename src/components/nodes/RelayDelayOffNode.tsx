@@ -1,5 +1,7 @@
-import { Handle, Position } from '@xyflow/react';
+import { MirroredHandle } from './NodeBase';
+import { Position } from '@xyflow/react';
 import { Clock } from 'lucide-react';
+
 
 /**
  * Time-Delay Relay (Off-Delay).
@@ -7,6 +9,8 @@ import { Clock } from 'lucide-react';
  * Standard SPDT contacts.
  */
 export function RelayDelayOffNode({ data, selected }: any) {
+    const flipX = data?.flipX || false;
+    const flipY = data?.flipY || false;
     const isEnergized = data?.state?.energized || false;
     const delayMs = data?.params?.delayMs ?? 5000;
     const label = data?.label || 'K';
@@ -16,9 +20,8 @@ export function RelayDelayOffNode({ data, selected }: any) {
     const bodyColor = isEnergized ? '#1e293b' : '#0f172a';
     const bodyStroke = selected ? '#38bdf8' : '#334155';
 
-    return (
-        <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
-            style={{ width: W, height: H + 24 }}>
+    return (            <div className={`relative ${selected ? 'drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]' : ''}`}
+            style={{ width: W, height: H + 24}}>
             <svg width={W} height={H + 24} viewBox={`0 0 ${W} ${H + 24}`} fill="none">
                 <rect x="5" y="5" width={W - 10} height={H - 10} rx="6"
                     fill={bodyColor} stroke={bodyStroke} strokeWidth="1.5" />
@@ -59,16 +62,16 @@ export function RelayDelayOffNode({ data, selected }: any) {
                 </span>
             </div>
 
-            <Handle type="source" position={Position.Top} id="no"
-                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '50%' }} />
-            <Handle type="source" position={Position.Right} id="nc"
-                className="!w-3 !h-3 !bg-slate-500 !border-2 !border-white" style={{ top: '50%' }} />
-            <Handle type="target" position={Position.Bottom} id="coil_in"
-                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }} />
-            <Handle type="target" position={Position.Bottom} id="com"
-                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }} />
-            <Handle type="source" position={Position.Bottom} id="coil_out"
-                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }} />
+            <MirroredHandle type="source" side={Position.Top} id="no"
+                className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white" style={{ left: '50%' }}  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Right} id="nc"
+                className="!w-3 !h-3 !bg-slate-500 !border-2 !border-white" style={{ top: '50%' }}  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Bottom} id="coil_in"
+                className="!w-3 !h-3 !bg-purple-500 !border-2 !border-white" style={{ left: '21%' }}  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Bottom} id="com"
+                className="!w-3 !h-3 !bg-yellow-500 !border-2 !border-white" style={{ left: '50%' }}  flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="source" side={Position.Bottom} id="coil_out"
+                className="!w-3 !h-3 !bg-purple-400 !border-2 !border-white" style={{ left: '79%' }}  flipX={flipX} flipY={flipY} />
         </div>
     );
 }
