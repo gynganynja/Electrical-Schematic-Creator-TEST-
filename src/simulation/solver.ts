@@ -808,29 +808,17 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const ni = d.params?.numInputs ?? 4;
                 const no = d.params?.numOutputs ?? 4;
                 const inputPulls = d.params?.inputPulls || {};
-                const inputPullVoltages = d.params?.inputPullVoltages || {};
                 const PULL_R = 4700; // 4.7 kΩ — typical automotive pull resistor
                 // Inputs: sense + optional pull-up/pull-down
                 for (let i = 1; i <= ni; i++) {
                     const pinId = `in${i}`;
                     const pull = inputPulls[pinId] || 'none';
-                    const pullV = Number(inputPullVoltages[pinId] ?? 12);
                     if (pull === 'pullup') {
-                        // Pull-up: internal vsource to '0' (absolute ground) + 4.7kΩ to pin
-                        // No separate sense resistor needed — pull-R already anchors the net
-                        const pullNet = node.id + `_pullvcc${i}`;
-                        components.push({
-                            nodeId: node.id + `_pullvsrc${i}`,
-                            type: 'vsource',
-                            n1: pullNet,
-                            n2: '0',
-                            value: pullV,
-                            data: d,
-                        });
+                        // Pull-up: 4.7kΩ from ECU VCC net to pin — only active when ECU is powered
                         components.push({
                             nodeId: node.id + `_pull${i}`,
                             type: 'resistor',
-                            n1: pullNet,
+                            n1: net('vcc'),
                             n2: net(pinId),
                             value: PULL_R,
                             data: d,
@@ -1085,25 +1073,15 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 // Inputs: high-impedance sense (1MΩ) + optional pull-up/pull-down
                 const inputs = Array.isArray(d.params?.inputs) ? d.params.inputs : ['in1', 'in2'];
                 const advInputPulls = d.params?.inputPulls || {};
-                const advInputPullVoltages = d.params?.inputPullVoltages || {};
                 const ADV_PULL_R = 4700; // 4.7 kΩ
                 inputs.forEach((pinName: string, idx: number) => {
                     const pull = advInputPulls[pinName] || 'none';
-                    const pullV = Number(advInputPullVoltages[pinName] ?? 12);
                     if (pull === 'pullup') {
-                        const pullNet = `${node.id}_pullvcc_${pinName}`;
-                        components.push({
-                            nodeId: `${node.id}_pullvsrc_${pinName}`,
-                            type: 'vsource',
-                            n1: pullNet,
-                            n2: '0',
-                            value: pullV,
-                            data: d,
-                        });
+                        // Pull-up: 4.7kΩ from ECU VCC net to pin — only active when ECU is powered
                         components.push({
                             nodeId: `${node.id}_pull_${pinName}`,
                             type: 'resistor',
-                            n1: pullNet,
+                            n1: net('vcc'),
                             n2: net(pinName),
                             value: ADV_PULL_R,
                             data: d,
