@@ -17,7 +17,7 @@ export function RelayNode({ data, selected }: any) {
     const pinColor = '#fbbf24';
     const bodyColor = isEnergized ? '#1e293b' : '#0f172a';
     const bodyStroke = selected ? '#38bdf8' : '#334155';
-    const textColor = '#94a3b8';
+
 
     // Logical sides
     const side87 = Position.Top;
