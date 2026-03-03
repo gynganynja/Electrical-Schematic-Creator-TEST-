@@ -1743,13 +1743,17 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
-        // LED on/off — only lights when forward-biased
-        if ((d as any).type === 'led') {
+        // Diode / LED — persist forward state so next tick starts correctly
+        if ((d as any).type === 'diode' || (d as any).type === 'led') {
             const vIn = voltages[netMap[`${node.id}:anode`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:cathode`]] ?? 0;
-            const isOn = (vIn - vOut) > 1.8;
-            if (isOn !== oldState?.on) {
-                nodeUpdates.push({ id: node.id, data: { state: { ...newState, on: isOn } } as any });
+            const fwd = newState?.forward ?? (vIn > vOut);
+            const updatedState: any = { ...newState, forward: fwd };
+            if ((d as any).type === 'led') {
+                updatedState.on = (vIn - vOut) > 1.8;
+            }
+            if (JSON.stringify(updatedState) !== JSON.stringify(oldState)) {
+                nodeUpdates.push({ id: node.id, data: { state: updatedState } as any });
             }
         }
 
