@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Settings, Zap, Clock, Save, AlertCircle, Radio, ToggleLeft, Calculator } from 'lucide-react';
+import { X, Plus, Trash2, Settings, Zap, Clock, Save, AlertCircle, Radio, ToggleLeft, Calculator, Power } from 'lucide-react';
 import useStore from '../../store/useStore';
 import type { LogicBlockType } from '../../simulation/ecu/LogicRuntime';
 
@@ -151,6 +151,7 @@ export function RulesEditor() {
             MATH: { input: p0, gain: 1.0, offset: 0, min: 0, max: 12, output: o0 },
             CAN_TX: { conditionMode: 'always', input: p0, pgn: 65262, priority: 6, interval: 100, data: [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], dataMap: [{ byteIndex: 0, source: p0, scale: 255 / 12, offset: 0 }] },
             CAN_RX: { pgn: 65262, output: '', timeoutMs: 2000, driveType: 'HIGH_SIDE', extractMap: [{ byteIndex: 0, varName: 'rx_in1', scale: 12 / 255, offset: 0 }] },
+            ALWAYS_ON: { output: o0, voltage: 5 },
         };
         setRules([...rules, {
             id: Math.random().toString(36).substring(2, 11),
@@ -177,6 +178,7 @@ export function RulesEditor() {
         MATH: <Calculator className="text-orange-400" size={14} />,
         CAN_TX: <Radio className="text-indigo-400" size={14} />,
         CAN_RX: <Radio className="text-emerald-400 rotate-180" size={14} />,
+        ALWAYS_ON: <Power className="text-green-400" size={14} />,
     };
 
     const renderRuleBody = (rule: any) => {
@@ -188,6 +190,23 @@ export function RulesEditor() {
         const validOutput = (name: string) => outputPins.includes(name) ? name : (outputPins[0] || name);
 
         switch (rule.type) {
+            case 'ALWAYS_ON': {
+                return (
+                    <>
+                        <div className="space-y-1">
+                            <Label>Output pin</Label>
+                            <OutputPinSelect value={validOutput(cfg.output || outputPins[0])} onChange={v => upd({ output: v })} outputs={outputPins} label="Drive" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Fixed voltage (V)</Label>
+                            <Inp type="number" value={cfg.voltage ?? 5} step="0.1" min="0" max="12"
+                                onChange={(e: any) => upd({ voltage: parseFloat(e.target.value) })}
+                                className="w-full text-green-300" />
+                        </div>
+                    </>
+                );
+            }
+
             case 'COMPARE': {
                 const inputSource = cfg.inputSource || 'pin';
                 const andConditions: any[] = Array.isArray(cfg.andConditions) ? cfg.andConditions : [];
@@ -774,6 +793,10 @@ export function RulesEditor() {
                     <button onClick={() => addRule('CAN_RX')}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all active:scale-95">
                         <Radio size={12} className="rotate-180" /> CAN RX
+                    </button>
+                    <button onClick={() => addRule('ALWAYS_ON')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/40 hover:bg-green-900/60 text-green-300 border border-green-500/20 rounded-lg text-xs font-bold transition-all active:scale-95">
+                        <Power size={12} /> Always On
                     </button>
                 </div>
 

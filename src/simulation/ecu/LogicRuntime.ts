@@ -1,4 +1,4 @@
-export type LogicBlockType = 'COMPARE' | 'TIMER' | 'LATCH' | 'MATH' | 'CAN_TX' | 'CAN_RX';
+export type LogicBlockType = 'COMPARE' | 'TIMER' | 'LATCH' | 'MATH' | 'CAN_TX' | 'CAN_RX' | 'ALWAYS_ON';
 
 export interface LogicRule {
     id: string;
@@ -117,6 +117,16 @@ export class LogicRuntime {
             const ruleId = rule.id || `legacy-${JSON.stringify(config)}`;
 
             switch (type) {
+                // ─── ALWAYS_ON ──────────────────────────────────────
+                // Drives an output pin to a fixed voltage unconditionally every tick
+                case 'ALWAYS_ON': {
+                    const outputPin = config.output;
+                    if (outputPin) {
+                        outputs[outputPin] = config.voltage ?? 5;
+                    }
+                    break;
+                }
+
                 // ─── COMPARE ────────────────────────────────────────
                 // Compare an input/var against a threshold (number, pin, or var)
                 // Operators: > < >= <= == !=
