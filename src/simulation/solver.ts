@@ -1763,6 +1763,16 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
+        // Compressor clutch engaged
+        if ((d as any).type === 'compressor_clutch') {
+            const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
+            const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
+            const isActivated = Math.abs(vIn - vOut) > 1;
+            if (isActivated !== oldState?.activated) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, activated: isActivated } } as any });
+            }
+        }
+
         // Flasher toggle (oscillates each simulation tick when powered)
         if ((d as any).type === 'flasher') {
             const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
