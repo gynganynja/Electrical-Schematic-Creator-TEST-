@@ -485,7 +485,12 @@ export function RulesEditor() {
                         <div className="space-y-1 col-span-2">
                             <Label>Trigger condition</Label>
                             <div className="flex gap-1 flex-wrap">
-                                <Sel value={cfg.conditionMode || 'always'} onChange={(e: any) => upd({ conditionMode: e.target.value })}>
+                                <Sel value={cfg.conditionMode || 'always'} onChange={(e: any) => {
+                                    const mode = e.target.value;
+                                    const patch: any = { conditionMode: mode };
+                                    if (mode === 'compare' && cfg.condThreshold === undefined) patch.condThreshold = 5;
+                                    upd(patch);
+                                }}>
                                     <option value="always">Always (periodic)</option>
                                     <option value="simple">Pin Active (&gt; 0.5V)</option>
                                     <option value="compare">Comparison</option>
