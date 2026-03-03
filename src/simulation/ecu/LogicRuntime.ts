@@ -292,6 +292,19 @@ export class LogicRuntime {
                         shouldTransmit = (resolveValue(config.input, inputs, vars, 0)) > 0.5;
                     }
 
+                    // Evaluate optional AND conditions — all must pass for transmission
+                    if (shouldTransmit && Array.isArray(config.andConditions)) {
+                        for (const cond of config.andConditions) {
+                            if (!cond || !cond.input) continue;
+                            const aLeft = resolveValue(cond.input, inputs, vars, 0);
+                            const aRight = resolveValue(
+                                cond.compareSource === 'pin' ? cond.comparePin :
+                                cond.compareSource === 'var' ? cond.compareVar :
+                                cond.threshold, inputs, vars, 5);
+                            if (!evalOp(cond.op ?? '>', aLeft, aRight)) { shouldTransmit = false; break; }
+                        }
+                    }
+
                     if (shouldTransmit) {
                         // Build data payload — legacy byte encoding
                         const baseData = config.data || [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
@@ -361,14 +374,30 @@ export class LogicRuntime {
                     const timeout = config.timeoutMs || 2000;
                     const isActive = lastReceived !== undefined && (timestamp - lastReceived) < timeout;
 
+                    // Evaluate optional AND conditions — gate output and variable extraction
+                    let andPassed = true;
+                    if (Array.isArray(config.andConditions)) {
+                        for (const cond of config.andConditions) {
+                            if (!cond || !cond.input) continue;
+                            const aLeft = resolveValue(cond.input, inputs, vars, 0);
+                            const aRight = resolveValue(
+                                cond.compareSource === 'pin' ? cond.comparePin :
+                                cond.compareSource === 'var' ? cond.compareVar :
+                                cond.threshold, inputs, vars, 5);
+                            if (!evalOp(cond.op ?? '>', aLeft, aRight)) { andPassed = false; break; }
+                        }
+                    }
+
+                    const gatedActive = isActive && andPassed;
+
                     // Drive output pin
                     const outputPin = config.output;
                     if (outputPin) {
-                        outputs[outputPin] = driveVoltage(config, isActive);
+                        outputs[outputPin] = driveVoltage(config, gatedActive);
                     }
 
                     // Extract data bytes into internal variables (legacy byte encoding)
-                    if (isActive && Array.isArray(config.extractMap)) {
+                    if (gatedActive && Array.isArray(config.extractMap)) {
                         const cachedData = this.rxDataCache.get(ruleId);
                         if (cachedData) {
                             for (const mapping of config.extractMap) {
@@ -381,14 +410,14 @@ export class LogicRuntime {
                                 vars[varName] = raw * scale + offset;
                             }
                         }
-                    } else if (!isActive && Array.isArray(config.extractMap)) {
+                    } else if (!gatedActive && Array.isArray(config.extractMap)) {
                         for (const mapping of config.extractMap) {
                             if (mapping.varName) vars[mapping.varName] = 0;
                         }
                     }
 
                     // floatMap extraction — zero-scaling passthrough: { label, varName }
-                    if (isActive && Array.isArray(config.floatMap)) {
+                    if (gatedActive && Array.isArray(config.floatMap)) {
                         const cachedFloat = (this.rxDataCache as any).get(ruleId + '_float') as Record<string, number> | undefined;
                         if (cachedFloat) {
                             for (const mapping of config.floatMap) {
@@ -397,7 +426,7 @@ export class LogicRuntime {
                                 }
                             }
                         }
-                    } else if (!isActive && Array.isArray(config.floatMap)) {
+                    } else if (!gatedActive && Array.isArray(config.floatMap)) {
                         for (const mapping of config.floatMap) {
                             if (mapping.varName) vars[mapping.varName] = 0;
                         }

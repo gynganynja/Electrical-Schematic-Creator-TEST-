@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Settings, Zap, Clock, Save, AlertCircle, Radio, ToggleLeft, Calculator } from 'lucide-react';
 import useStore from '../../store/useStore';
 import type { LogicBlockType } from '../../simulation/ecu/LogicRuntime';
@@ -474,7 +474,12 @@ export function RulesEditor() {
                 );
             }
 
-            case 'CAN_TX':
+            case 'CAN_TX': {
+                const canTxAndConds: any[] = Array.isArray(cfg.andConditions) ? cfg.andConditions : [];
+                const updCanTxAndCond = (idx: number, patch: any) => {
+                    const next = canTxAndConds.map((c, i) => i === idx ? { ...c, ...patch } : c);
+                    upd({ andConditions: next });
+                };
                 return (
                     <>
                         <div className="space-y-1 col-span-2">
@@ -569,10 +574,50 @@ export function RulesEditor() {
                                 </div>
                             ))}
                         </div>
+
+                        {/* AND conditions */}
+                        {canTxAndConds.map((cond, idx) => (
+                            <div key={idx} className="col-span-2 bg-slate-900/60 border border-white/5 rounded-lg p-2 space-y-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">AND</span>
+                                    <button onClick={() => upd({ andConditions: canTxAndConds.filter((_, i) => i !== idx) })}
+                                        className="text-slate-600 hover:text-red-400 transition-colors">
+                                        <Trash2 size={11} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-1">
+                                    <Sel value={cond.inputSource || 'pin'} onChange={(e: any) => updCanTxAndCond(idx, { inputSource: e.target.value })} className="w-14">
+                                        <option value="pin">Pin</option>
+                                        <option value="var">Var</option>
+                                    </Sel>
+                                    {(cond.inputSource || 'pin') === 'pin' ? (
+                                        <InputPinSelect value={validInput(cond.input || inputPins[0])} onChange={v => updCanTxAndCond(idx, { input: v })} inputs={inputPins} />
+                                    ) : (
+                                        <Inp type="text" value={cond.input || ''} placeholder="var_name"
+                                            onChange={(e: any) => updCanTxAndCond(idx, { input: e.target.value })}
+                                            className="flex-1 font-mono text-amber-300" />
+                                    )}
+                                    <OpSelect value={cond.op || '>'} onChange={v => updCanTxAndCond(idx, { op: v })} />
+                                </div>
+                                <CompareSourcePicker config={cond} onChange={patch => updCanTxAndCond(idx, patch)} inputs={inputPins} />
+                            </div>
+                        ))}
+                        <div className="col-span-2">
+                            <button onClick={() => upd({ andConditions: [...canTxAndConds, { input: inputPins[0] || '', inputSource: 'pin', op: '>', compareSource: 'value', threshold: 5 }] })}
+                                className="flex items-center gap-1 text-[10px] text-emerald-500 hover:text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 rounded px-2 py-1 transition-all">
+                                <Plus size={11} /> Add AND condition
+                            </button>
+                        </div>
                     </>
                 );
+            }
 
-            case 'CAN_RX':
+            case 'CAN_RX': {
+                const canRxAndConds: any[] = Array.isArray(cfg.andConditions) ? cfg.andConditions : [];
+                const updCanRxAndCond = (idx: number, patch: any) => {
+                    const next = canRxAndConds.map((c, i) => i === idx ? { ...c, ...patch } : c);
+                    upd({ andConditions: next });
+                };
                 return (
                     <>
                         <div className="space-y-1">
@@ -639,8 +684,43 @@ export function RulesEditor() {
                                 </div>
                             ))}
                         </div>
+
+                        {/* AND conditions */}
+                        {canRxAndConds.map((cond, idx) => (
+                            <div key={idx} className="col-span-2 bg-slate-900/60 border border-white/5 rounded-lg p-2 space-y-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">AND</span>
+                                    <button onClick={() => upd({ andConditions: canRxAndConds.filter((_, i) => i !== idx) })}
+                                        className="text-slate-600 hover:text-red-400 transition-colors">
+                                        <Trash2 size={11} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-1">
+                                    <Sel value={cond.inputSource || 'pin'} onChange={(e: any) => updCanRxAndCond(idx, { inputSource: e.target.value })} className="w-14">
+                                        <option value="pin">Pin</option>
+                                        <option value="var">Var</option>
+                                    </Sel>
+                                    {(cond.inputSource || 'pin') === 'pin' ? (
+                                        <InputPinSelect value={validInput(cond.input || inputPins[0])} onChange={v => updCanRxAndCond(idx, { input: v })} inputs={inputPins} />
+                                    ) : (
+                                        <Inp type="text" value={cond.input || ''} placeholder="var_name"
+                                            onChange={(e: any) => updCanRxAndCond(idx, { input: e.target.value })}
+                                            className="flex-1 font-mono text-amber-300" />
+                                    )}
+                                    <OpSelect value={cond.op || '>'} onChange={v => updCanRxAndCond(idx, { op: v })} />
+                                </div>
+                                <CompareSourcePicker config={cond} onChange={patch => updCanRxAndCond(idx, patch)} inputs={inputPins} />
+                            </div>
+                        ))}
+                        <div className="col-span-2">
+                            <button onClick={() => upd({ andConditions: [...canRxAndConds, { input: inputPins[0] || '', inputSource: 'pin', op: '>', compareSource: 'value', threshold: 5 }] })}
+                                className="flex items-center gap-1 text-[10px] text-emerald-500 hover:text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 rounded px-2 py-1 transition-all">
+                                <Plus size={11} /> Add AND condition
+                            </button>
+                        </div>
                     </>
                 );
+            }
 
             default:
                 return null;
