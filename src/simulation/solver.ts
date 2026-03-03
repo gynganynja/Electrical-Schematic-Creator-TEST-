@@ -148,6 +148,7 @@ function getTerminals(type: string, _data?: any): string[] {
         case 'heater':
         case 'compressor_clutch':
         case 'ignition_coil':
+        case 'throttle_actuator':
         case 'temp_sensor':
         case 'oil_press_sensor':
         case 'air_press_sensor':
@@ -744,6 +745,18 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
             }
+
+            // ---- Throttle Actuator: DC motor load ----
+            case 'throttle_actuator':
+                components.push({
+                    nodeId: node.id,
+                    type: 'resistor',
+                    n1: net('in'),
+                    n2: net('out'),
+                    value: d.params?.resistance ?? 2.5,
+                    data: d,
+                });
+                break;
 
             // ---- Ignition Coil: primary winding resistive load ----
             case 'ignition_coil':
@@ -1801,6 +1814,18 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             const isActivated = Math.abs(vIn - vOut) > 1;
             if (isActivated !== oldState?.activated) {
                 nodeUpdates.push({ id: node.id, data: { state: { ...newState, activated: isActivated } } as any });
+            }
+        }
+
+        // Throttle actuator
+        if ((d as any).type === 'throttle_actuator') {
+            const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
+            const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
+            const vDrop = Math.abs(vIn - vOut);
+            const isActivated = vDrop > 1;
+            const position = isActivated ? Math.min(100, (vDrop / 12) * 100) : 0;
+            if (isActivated !== oldState?.activated || Math.abs((oldState?.position ?? 0) - position) > 1) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, activated: isActivated, position } } as any });
             }
         }
 

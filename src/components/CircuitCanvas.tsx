@@ -58,6 +58,7 @@ import { AirPressureSensorNode } from './nodes/AirPressureSensorNode';
 import { MAFSensorNode } from './nodes/MAFSensorNode';
 import { TPSSensorNode } from './nodes/TPSSensorNode';
 import { IgnitionCoilNode } from './nodes/IgnitionCoilNode';
+import { ThrottleActuatorNode } from './nodes/ThrottleActuatorNode';
 import { WheelSpeedSensorNode } from './nodes/WheelSpeedSensorNode';
 import { RPMSensorNode } from './nodes/RPMSensorNode';
 import { SpeedoGaugeNode } from './nodes/SpeedoGaugeNode';
@@ -121,6 +122,7 @@ const nodeTypes: Record<string, any> = {
     maf_sensor: MAFSensorNode,
     tps_sensor: TPSSensorNode,
     ignition_coil: IgnitionCoilNode,
+    throttle_actuator: ThrottleActuatorNode,
     wss_sensor: WheelSpeedSensorNode,
     rpm_sensor: RPMSensorNode,
     speedo_gauge: SpeedoGaugeNode,
@@ -252,6 +254,8 @@ function makeDefaultData(type: string, id: string): Record<string, any> {
             return { id, type, label: `TPS${id}`, state: { position: 0 }, params: { vMin: 0.5, vMax: 4.5 } };
         case 'ignition_coil':
             return { id, type, label: `IGN${id}`, state: { activated: false }, params: { resistance: 1.2 } };
+        case 'throttle_actuator':
+            return { id, type, label: `THA${id}`, state: { activated: false, position: 0 }, params: { resistance: 2.5 } };
         case 'wss_sensor':
             return { id, type, label: `WSS${id}`, state: { speed: 0 }, params: {} };
         case 'speedo_gauge':

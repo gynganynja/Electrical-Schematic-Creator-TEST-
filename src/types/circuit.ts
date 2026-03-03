@@ -60,7 +60,8 @@ export type ComponentType =
     | 'ecu_advanced'
     | 'schematic_frame'
     | 'tps_sensor'
-    | 'ignition_coil';
+    | 'ignition_coil'
+    | 'throttle_actuator';
 
 // Terminal definitions by component type
 export type TerminalId = string;
