@@ -145,7 +145,11 @@ function App() {
       const d = ecu.data as any;
       const busId = ecuToBusMap.get(ecu.id);
       const bus = busId ? state.nodes.find(n => n.id === busId) : null;
-      const isPowered = d.state?.vcc > 10;
+      // Read VCC directly from solver voltages (not stale node state) to avoid one-tick lag
+      const vccNet = result.netMap[`${ecu.id}:vcc`];
+      const gndNet = result.netMap[`${ecu.id}:gnd`];
+      const vccVoltage = (result.nodeVoltages[vccNet] ?? 0) - (result.nodeVoltages[gndNet] ?? 0);
+      const isPowered = vccVoltage > 10;
       if (!isPowered) continue;
 
       // --- Custom Logic Execution ---
