@@ -30,8 +30,14 @@ export function AdvancedECUNode({ id, data, selected }: any) {
     const leftPins = pinDefs.filter(p => mapSideByFlip(p.side, flipX, flipY) === Position.Left);
     const rightPins = pinDefs.filter(p => mapSideByFlip(p.side, flipX, flipY) === Position.Right);
 
+    // Dynamic height: each pin row is 28px tall + 8px gap; add 160px for header/CAN panel/button
+    const PIN_H = 28 + 8; // h-7 + space-y-2
+    const FIXED_H = 200;  // header + CAN bar + button + padding
+    const tallestSide = Math.max(leftPins.length, rightPins.length);
+    const nodeHeight = Math.max(340, tallestSide * PIN_H + FIXED_H);
+
     return (
-        <NodeBody flipX={flipX} flipY={flipY} selected={selected} width={280} height={340}>
+        <NodeBody flipX={flipX} flipY={flipY} selected={selected} width={280} height={nodeHeight}>
             {/* Edge Pin Containers */}
             <div className="absolute inset-0 pointer-events-none">
                 {/* Visual Left Container */}
