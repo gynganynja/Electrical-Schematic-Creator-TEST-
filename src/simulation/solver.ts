@@ -1525,6 +1525,10 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
     let voltages: Record<string, number> = {};
     const MAX_ITERATIONS = 20;
 
+    // Track state history per node to detect oscillation (flip-flop cycles)
+    const stateHistory: Record<string, boolean[]> = {};
+    const frozenNodes = new Set<string>(); // Nodes that oscillated and are now locked
+
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
         // Build netlist from current states
         const augmentedNodes = nodes.map(n => ({
@@ -1546,6 +1550,8 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             const d = node.data as AnyComponentData;
             if (d.type === 'relay_spdt' || (d as any).type === 'relay_spst' || (d as any).type === 'relay_dual87'
                 || (d as any).type === 'relay_delay_on' || (d as any).type === 'relay_delay_off') {
+                if (frozenNodes.has(node.id)) continue; // Skip oscillating relays
+
                 const vCoilIn = voltages[netMap[`${node.id}:coil_in`]] ?? 0;
                 const vCoilOut = voltages[netMap[`${node.id}:coil_out`]] ?? 0;
                 const coilVoltage = Math.abs(vCoilIn - vCoilOut);
@@ -1558,12 +1564,20 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 if (wasEnergized && coilVoltage < release) nowEnergized = false;
 
                 if (wasEnergized !== nowEnergized) {
+                    // Check for oscillation: if this state was seen before, freeze the relay
+                    if (!stateHistory[node.id]) stateHistory[node.id] = [];
+                    stateHistory[node.id].push(nowEnergized);
+                    const hist = stateHistory[node.id];
+                    if (hist.length >= 4 && hist[hist.length - 1] === hist[hist.length - 3]) {
+                        // Oscillation detected — latch in energized state (real relays have inertia)
+                        nodeStates[node.id] = { ...nodeStates[node.id], energized: true };
+                        frozenNodes.add(node.id);
+                        stateChanged = true;
+                        continue;
+                    }
+
                     nodeStates[node.id] = { ...nodeStates[node.id], energized: nowEnergized };
                     stateChanged = true;
-                    events.push({
-                        level: 'info',
-                        message: `Relay ${d.label} ${nowEnergized ? 'ENERGIZED' : 'DE-ENERGIZED'} (coil: ${coilVoltage.toFixed(1)}V)`,
-                    });
                 }
             }
 
@@ -1585,10 +1599,6 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 if (wasEnergized !== nowEnergized) {
                     nodeStates[node.id] = { ...nodeStates[node.id], energized: nowEnergized };
                     stateChanged = true;
-                    events.push({
-                        level: 'info',
-                        message: `Latching Relay ${(d as any).label} ${nowEnergized ? 'SET' : 'RESET'}`,
-                    });
                 }
             }
         }
@@ -1729,6 +1739,24 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
         }
 
         if (!stateChanged) break;
+    }
+
+    // Log relay state changes (only final state, not intermediate iterations)
+    for (const node of nodes) {
+        const d = node.data as any;
+        const isRelay = ['relay_spdt', 'relay_spst', 'relay_dual87', 'relay_delay_on', 'relay_delay_off'].includes(d.type);
+        if (!isRelay) continue;
+        const origEnergized = (d.state?.energized) || false;
+        const finalEnergized = nodeStates[node.id]?.energized || false;
+        if (origEnergized !== finalEnergized) {
+            const vCoilIn = voltages[netMap[`${node.id}:coil_in`]] ?? 0;
+            const vCoilOut = voltages[netMap[`${node.id}:coil_out`]] ?? 0;
+            const coilVoltage = Math.abs(vCoilIn - vCoilOut);
+            events.push({
+                level: 'info',
+                message: `Relay ${d.label} ${finalEnergized ? 'ENERGIZED' : 'DE-ENERGIZED'} (coil: ${coilVoltage.toFixed(1)}V)`,
+            });
+        }
     }
 
     // Build node updates
