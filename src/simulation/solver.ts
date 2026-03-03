@@ -1047,8 +1047,9 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (rpm / maxR) * (vMax - vMin);
+                const clampedV = Math.max(0, Math.min(vMax, vOut));
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: clampedV, data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }

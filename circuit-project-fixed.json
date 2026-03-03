@@ -1,0 +1,870 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "1",
+      "type": "battery",
+      "position": { "x": 460, "y": 140 },
+      "data": { "id": "1", "type": "battery", "label": "BAT1", "state": {}, "params": { "voltage": 12, "internalResistance": 0.05 } }
+    },
+    {
+      "id": "2",
+      "type": "ground",
+      "position": { "x": 480, "y": 460 },
+      "data": { "id": "2", "type": "ground", "label": "GND2", "state": {}, "params": {} }
+    },
+    {
+      "id": "3",
+      "type": "switch_master",
+      "position": { "x": 460, "y": 300 },
+      "data": { "id": "3", "type": "switch_master", "label": "MSTR3", "state": { "closed": true }, "params": {} }
+    },
+    {
+      "id": "5",
+      "type": "fuse",
+      "position": { "x": 860, "y": 60 },
+      "data": { "id": "5", "type": "fuse", "label": "F-IGN", "state": { "blown": false }, "params": { "tripCurrent": 15, "tripTimeMs": 100 } }
+    },
+    {
+      "id": "6",
+      "type": "fuse",
+      "position": { "x": 860, "y": 120 },
+      "data": { "id": "6", "type": "fuse", "label": "F-ACC", "state": { "blown": false }, "params": { "tripCurrent": 15, "tripTimeMs": 100 } }
+    },
+    {
+      "id": "7",
+      "type": "fuse",
+      "position": { "x": 860, "y": 0 },
+      "data": { "id": "7", "type": "fuse", "label": "F-12V", "state": { "blown": false }, "params": { "tripCurrent": 15, "tripTimeMs": 100 } }
+    },
+    {
+      "id": "8",
+      "type": "switch_ignition",
+      "position": { "x": 860, "y": 180 },
+      "data": { "id": "8", "type": "switch_ignition", "label": "IGN8", "state": { "position": "start" }, "params": {} }
+    },
+    {
+      "id": "9",
+      "type": "relay_spst",
+      "position": { "x": 1100, "y": 20 },
+      "data": { "id": "9", "type": "relay_spst", "label": "R-ACC", "state": { "energized": false }, "params": { "coilResistance": 80, "pullInVoltage": 8 } }
+    },
+    {
+      "id": "10",
+      "type": "relay_spst",
+      "position": { "x": 1200, "y": 20 },
+      "data": { "id": "10", "type": "relay_spst", "label": "R-IGN", "state": { "energized": false }, "params": { "coilResistance": 80, "pullInVoltage": 8 } }
+    },
+    {
+      "id": "11",
+      "type": "net_label",
+      "position": { "x": 1140, "y": -40 },
+      "data": { "id": "11", "type": "net_label", "label": "N-ACC", "state": {}, "params": { "color": "#38bdf8" }, "flipX": false }
+    },
+    {
+      "id": "12",
+      "type": "net_label",
+      "position": { "x": 1280, "y": -40 },
+      "data": { "id": "12", "type": "net_label", "label": "N-IGN", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "13",
+      "type": "net_label",
+      "position": { "x": 620, "y": 360 },
+      "data": { "id": "13", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "14",
+      "type": "net_label",
+      "position": { "x": 980, "y": 0 },
+      "data": { "id": "14", "type": "net_label", "label": "N-12V", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "15",
+      "type": "lamp",
+      "position": { "x": 780, "y": -780 },
+      "data": { "id": "15", "type": "lamp", "label": "HEADLOW", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "16",
+      "type": "lamp",
+      "position": { "x": 780, "y": -620 },
+      "data": { "id": "16", "type": "lamp", "label": "HEADLOW", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "17",
+      "type": "relay_dual87",
+      "position": { "x": 1420, "y": -700 },
+      "data": { "id": "17", "type": "relay_dual87", "label": "R-HEADLOW", "state": { "energized": false }, "params": { "coilResistance": 80, "pullInVoltage": 8 } }
+    },
+    {
+      "id": "18",
+      "type": "net_label",
+      "position": { "x": 1500, "y": -360 },
+      "data": { "id": "18", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "19",
+      "type": "net_label",
+      "position": { "x": 540, "y": -660 },
+      "data": { "id": "19", "type": "net_label", "label": "N-12V", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "20",
+      "type": "net_label",
+      "position": { "x": 780, "y": -380 },
+      "data": { "id": "20", "type": "net_label", "label": "N-12V", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "21",
+      "type": "switch_spst",
+      "position": { "x": 980, "y": -400 },
+      "data": { "id": "21", "type": "switch_spst", "label": "S21", "state": { "closed": true }, "params": {} }
+    },
+    {
+      "id": "22",
+      "type": "fusible_link",
+      "position": { "x": 660, "y": 40 },
+      "data": { "id": "22", "type": "fusible_link", "label": "FL22", "state": { "blown": false }, "params": { "tripCurrent": 80, "tripTimeMs": 500 } }
+    },
+    {
+      "id": "23",
+      "type": "lamp",
+      "position": { "x": 780, "y": -860 },
+      "data": { "id": "23", "type": "lamp", "label": "HEADHIGH", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "24",
+      "type": "lamp",
+      "position": { "x": 780, "y": -540 },
+      "data": { "id": "24", "type": "lamp", "label": "HEADHIGH", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "25",
+      "type": "switch_spdt",
+      "position": { "x": 1180, "y": -420 },
+      "data": { "id": "25", "type": "switch_spdt", "label": "SW25", "state": { "position": "nc" }, "params": {} }
+    },
+    {
+      "id": "26",
+      "type": "resistor",
+      "position": { "x": 1500, "y": -460 },
+      "data": { "id": "26", "type": "resistor", "label": "R26", "state": {}, "params": { "resistance": 10 } }
+    },
+    {
+      "id": "27",
+      "type": "relay_dual87",
+      "position": { "x": 1600, "y": -700 },
+      "data": { "id": "27", "type": "relay_dual87", "label": "R-HEADHIGH", "state": { "energized": false }, "params": { "coilResistance": 80, "pullInVoltage": 8 } }
+    },
+    {
+      "id": "28",
+      "type": "diode",
+      "position": { "x": 1380, "y": -340 },
+      "data": { "id": "28", "type": "diode", "label": "D28", "state": {}, "params": { "forwardDrop": 0.7 }, "flipX": false }
+    },
+    {
+      "id": "29",
+      "type": "fuse",
+      "position": { "x": 860, "y": -60 },
+      "data": { "id": "29", "type": "fuse", "label": "F-ECU", "state": { "blown": false }, "params": { "tripCurrent": 15, "tripTimeMs": 100 } }
+    },
+    {
+      "id": "30",
+      "type": "net_label",
+      "position": { "x": 980, "y": -40 },
+      "data": { "id": "30", "type": "net_label", "label": "N-ECU", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "31",
+      "type": "ecu_advanced",
+      "position": { "x": 2320, "y": 280 },
+      "data": {
+        "id": "31",
+        "type": "ecu_advanced",
+        "label": "BCM",
+        "state": { "vcc": 0 },
+        "params": {
+          "canMode": "J1939",
+          "sourceAddress": 1,
+          "rules": [
+            {
+              "id": "uaxh1z91s",
+              "type": "COMPARE",
+              "config": { "input": "door", "op": "<", "compareSource": "value", "threshold": 5, "output": "out1", "driveType": "HIGH_SIDE" }
+            },
+            {
+              "id": "rdciwxr0x",
+              "type": "COMPARE",
+              "config": { "input": "pbrake", "op": "<", "compareSource": "value", "threshold": 5, "output": "out2", "driveType": "HIGH_SIDE", "andConditions": [] }
+            },
+            {
+              "id": "e8sa6m8j8",
+              "type": "CAN_TX",
+              "config": {
+                "conditionMode": "compare",
+                "input": "door",
+                "pgn": 65262,
+                "priority": 6,
+                "interval": 100,
+                "data": [255, 255, 255, 255, 255, 255, 255, 255],
+                "dataMap": [{ "byteIndex": 0, "source": "door", "scale": 21.25, "offset": 0 }],
+                "condInput": "ac",
+                "condOp": "<",
+                "andConditions": [
+                  { "input": "cabtemp", "inputSource": "pin", "op": ">", "compareSource": "pin", "threshold": 1.76, "comparePin": "targettemp" }
+                ],
+                "condThreshold": 4.9
+              }
+            }
+          ],
+          "inputs": ["door", "pbrake", "ac", "cabtemp", "targettemp"],
+          "inputPulls": { "door": "pullup", "pbrake": "pullup", "cabtemp": "none", "ac": "pullup", "targettemp": "none" },
+          "outputs": ["out1", "out2", "out3", "out4"]
+        }
+      }
+    },
+    {
+      "id": "32",
+      "type": "net_label",
+      "position": { "x": 2020, "y": 300 },
+      "data": { "id": "32", "type": "net_label", "label": "N-ECU", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "33",
+      "type": "net_label",
+      "position": { "x": 2020, "y": 340 },
+      "data": { "id": "33", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "35",
+      "type": "net_label",
+      "position": { "x": 2380, "y": 100 },
+      "data": { "id": "35", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "37",
+      "type": "lamp",
+      "position": { "x": 2400, "y": 940 },
+      "data": { "id": "37", "type": "lamp", "label": "DoorOpenLamp", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "38",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": 60 },
+      "data": { "id": "38", "type": "switch_spst", "label": "S-DOOR2", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "39",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": -20 },
+      "data": { "id": "39", "type": "switch_spst", "label": "S-DOOR3", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "40",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": -100 },
+      "data": { "id": "40", "type": "switch_spst", "label": "S-DOOR4", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "41",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": 140 },
+      "data": { "id": "41", "type": "switch_spst", "label": "S-DOOR1", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "42",
+      "type": "splice",
+      "position": { "x": 2900, "y": 180 },
+      "data": { "id": "42", "type": "splice", "label": "SP42", "state": {}, "params": {} }
+    },
+    {
+      "id": "43",
+      "type": "splice",
+      "position": { "x": 2240, "y": 660 },
+      "data": { "id": "43", "type": "splice", "label": "SP43", "state": {}, "params": {} }
+    },
+    {
+      "id": "44",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": 220 },
+      "data": { "id": "44", "type": "switch_spst", "label": "S-PARKBRAKE", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "45",
+      "type": "lamp",
+      "position": { "x": 2400, "y": 860 },
+      "data": { "id": "45", "type": "lamp", "label": "PBAppliedLamp", "state": { "on": false }, "params": { "resistance": 24 } }
+    },
+    {
+      "id": "46",
+      "type": "temp_sensor",
+      "position": { "x": 2980, "y": 700 },
+      "data": { "id": "46", "type": "temp_sensor", "label": "CABTEMPSENSE", "state": { "temperature": 20 }, "params": {} }
+    },
+    {
+      "id": "47",
+      "type": "switch_spst",
+      "position": { "x": 2680, "y": -180 },
+      "data": { "id": "47", "type": "switch_spst", "label": "S-AIRCON", "state": { "closed": false }, "params": {} }
+    },
+    {
+      "id": "48",
+      "type": "can_transceiver",
+      "position": { "x": 1940, "y": 460 },
+      "data": { "id": "48", "type": "can_transceiver", "label": "XCVR48", "state": { "vcc": 0 }, "params": {}, "flipX": true }
+    },
+    {
+      "id": "49",
+      "type": "net_label",
+      "position": { "x": 2060, "y": 680 },
+      "data": { "id": "49", "type": "net_label", "label": "CANH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "50",
+      "type": "net_label",
+      "position": { "x": 2060, "y": 740 },
+      "data": { "id": "50", "type": "net_label", "label": "CANL", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "51",
+      "type": "ecu_advanced",
+      "position": { "x": 2720, "y": -1100 },
+      "data": {
+        "id": "51",
+        "type": "ecu_advanced",
+        "label": "PCM",
+        "state": { "vcc": 0 },
+        "params": {
+          "canMode": "J1939",
+          "sourceAddress": 2,
+          "rules": [
+            {
+              "id": "pcm_5vref",
+              "type": "ALWAYS_ON",
+              "config": { "output": "5V", "voltage": 5 }
+            },
+            {
+              "id": "pcm_fuelpump",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "fuelpmp",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_inj1",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "inj1",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_inj2",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "inj2",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_inj3",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "inj3",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_inj4",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "inj4",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_coil1",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "coil1",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_coil2",
+              "type": "COMPARE",
+              "config": {
+                "input": "crankpos",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 0.6,
+                "output": "coil2",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_starter",
+              "type": "COMPARE",
+              "config": {
+                "input": "startinp",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 6,
+                "output": "start",
+                "driveType": "HIGH_SIDE"
+              }
+            },
+            {
+              "id": "pcm_condenser",
+              "type": "COMPARE",
+              "config": {
+                "input": "coolanttemp",
+                "op": ">",
+                "compareSource": "value",
+                "threshold": 2.5,
+                "output": "Condenser",
+                "driveType": "LOW_SIDE"
+              }
+            },
+            {
+              "id": "pcm_acclutch_can",
+              "type": "CAN_RX",
+              "config": {
+                "pgn": 65262,
+                "output": "AcClutch",
+                "timeoutMs": 2000,
+                "driveType": "HIGH_SIDE",
+                "extractMap": [
+                  { "byteIndex": 0, "varName": "rx_in1", "scale": 0.047058823529411764, "offset": 0 }
+                ]
+              }
+            },
+            {
+              "id": "pcm_throttle",
+              "type": "MATH",
+              "config": {
+                "input": "tps",
+                "output": "throttle",
+                "mathMode": "rerange",
+                "inMin": 0.5,
+                "inMax": 4.5,
+                "outMin": 0,
+                "outMax": 12
+              }
+            }
+          ],
+          "outputs": ["Condenser", "AcClutch", "inj1", "inj2", "inj3", "inj4", "coil1", "coil2", "fuelpmp", "throttle", "start", "5V"],
+          "outputDrives": {
+            "Condenser": "low", "AcClutch": "high",
+            "inj1": "high", "inj2": "high", "inj3": "high", "inj4": "high",
+            "coil1": "high", "coil2": "high",
+            "fuelpmp": "high", "throttle": "high", "start": "high", "5V": "high"
+          },
+          "inputs": ["coolanttemp", "crankpos", "campos", "maf", "tps", "startinp"],
+          "inputPulls": {
+            "coolanttemp": "none", "crankpos": "none", "campos": "none",
+            "maf": "none", "tps": "none", "startinp": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "52",
+      "type": "net_label",
+      "position": { "x": 2340, "y": -940 },
+      "data": { "id": "52", "type": "net_label", "label": "N-ECU", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "53",
+      "type": "net_label",
+      "position": { "x": 2340, "y": -880 },
+      "data": { "id": "53", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "54",
+      "type": "can_transceiver",
+      "position": { "x": 2380, "y": -800 },
+      "data": { "id": "54", "type": "can_transceiver", "label": "XCVR54", "state": { "vcc": 0 }, "params": {}, "flipX": true }
+    },
+    {
+      "id": "55",
+      "type": "net_label",
+      "position": { "x": 2160, "y": -800 },
+      "data": { "id": "55", "type": "net_label", "label": "CANH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "56",
+      "type": "net_label",
+      "position": { "x": 2160, "y": -760 },
+      "data": { "id": "56", "type": "net_label", "label": "CANL", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "57",
+      "type": "can_bus",
+      "position": { "x": 1800, "y": 660 },
+      "data": { "id": "57", "type": "can_bus", "label": "CAN57", "state": {}, "params": { "bitrate": 500000, "mode": "HS-CAN" }, "flipX": false }
+    },
+    {
+      "id": "58",
+      "type": "temp_sensor",
+      "position": { "x": 2980, "y": 600 },
+      "data": { "id": "58", "type": "temp_sensor", "label": "TARGETTEMPSWITCH", "state": { "temperature": 19 }, "params": {} }
+    },
+    {
+      "id": "59",
+      "type": "relay_dual87",
+      "position": { "x": 2800, "y": -1340 },
+      "data": { "id": "59", "type": "relay_dual87", "label": "K59", "state": { "energized": false }, "params": { "coilResistance": 80, "pullInVoltage": 8 } }
+    },
+    {
+      "id": "60",
+      "type": "fuse",
+      "position": { "x": 860, "y": -120 },
+      "data": { "id": "60", "type": "fuse", "label": "F-COND", "state": { "blown": false }, "params": { "tripCurrent": 15, "tripTimeMs": 100 } }
+    },
+    {
+      "id": "61",
+      "type": "net_label",
+      "position": { "x": 980, "y": -100 },
+      "data": { "id": "61", "type": "net_label", "label": "N-COND", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "62",
+      "type": "net_label",
+      "position": { "x": 2340, "y": -1000 },
+      "data": { "id": "62", "type": "net_label", "label": "N-COND", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "63",
+      "type": "motor",
+      "position": { "x": 2700, "y": -1580 },
+      "data": { "id": "63", "type": "motor", "label": "CONDENSOR2", "state": { "running": false }, "params": { "resistance": 4 } }
+    },
+    {
+      "id": "64",
+      "type": "motor",
+      "position": { "x": 2860, "y": -1580 },
+      "data": { "id": "64", "type": "motor", "label": "CONDENSOR1", "state": { "running": false }, "params": { "resistance": 4 } }
+    },
+    {
+      "id": "65",
+      "type": "net_label",
+      "position": { "x": 2640, "y": -1680 },
+      "data": { "id": "65", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "66",
+      "type": "compressor_clutch",
+      "position": { "x": 3180, "y": -1520 },
+      "data": { "id": "66", "type": "compressor_clutch", "label": "ACCLUTCH", "state": { "activated": false }, "params": { "resistance": 3 } }
+    },
+    {
+      "id": "67",
+      "type": "switch_spst",
+      "position": { "x": 3020, "y": -1440 },
+      "data": { "id": "67", "type": "switch_spst", "label": "S-HP", "state": { "closed": true }, "params": {} }
+    },
+    {
+      "id": "68",
+      "type": "switch_spst",
+      "position": { "x": 3020, "y": -1360 },
+      "data": { "id": "68", "type": "switch_spst", "label": "S-LP", "state": { "closed": true }, "params": {} }
+    },
+    {
+      "id": "69",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -860 },
+      "data": { "id": "69", "type": "solenoid", "label": "INJ1", "state": { "activated": false }, "params": { "resistance": 12 } }
+    },
+    {
+      "id": "70",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -780 },
+      "data": { "id": "70", "type": "solenoid", "label": "INJ2", "state": { "activated": false }, "params": { "resistance": 12 } }
+    },
+    {
+      "id": "71",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -700 },
+      "data": { "id": "71", "type": "solenoid", "label": "INJ3", "state": { "activated": false }, "params": { "resistance": 12 } }
+    },
+    {
+      "id": "72",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -620 },
+      "data": { "id": "72", "type": "solenoid", "label": "INJ4", "state": { "activated": false }, "params": { "resistance": 12 } }
+    },
+    {
+      "id": "73",
+      "type": "net_label",
+      "position": { "x": 3840, "y": -740 },
+      "data": { "id": "73", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "74",
+      "type": "splice",
+      "position": { "x": 3800, "y": -680 },
+      "data": { "id": "74", "type": "splice", "label": "SP74", "state": {}, "params": {} }
+    },
+    {
+      "id": "75",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -540 },
+      "data": { "id": "75", "type": "solenoid", "label": "coil1", "state": { "activated": false }, "params": { "resistance": 0.4 } }
+    },
+    {
+      "id": "76",
+      "type": "solenoid",
+      "position": { "x": 3620, "y": -460 },
+      "data": { "id": "76", "type": "solenoid", "label": "coil2", "state": { "activated": false }, "params": { "resistance": 0.4 } }
+    },
+    {
+      "id": "77",
+      "type": "motor",
+      "position": { "x": 3620, "y": -380 },
+      "data": { "id": "77", "type": "motor", "label": "fuelpump", "state": { "running": false }, "params": { "resistance": 4 } }
+    },
+    {
+      "id": "78",
+      "type": "motor",
+      "position": { "x": 3620, "y": -140 },
+      "data": { "id": "78", "type": "motor", "label": "startmotor", "state": { "running": false }, "params": { "resistance": 1 } }
+    },
+    {
+      "id": "79",
+      "type": "throttle_actuator",
+      "position": { "x": 3600, "y": -260 },
+      "data": { "id": "79", "type": "throttle_actuator", "label": "throttlebody", "state": { "activated": false, "position": 0 }, "params": { "resistance": 2.5 } }
+    },
+    {
+      "id": "80",
+      "type": "temp_sensor",
+      "position": { "x": 3400, "y": -1180 },
+      "data": { "id": "80", "type": "temp_sensor", "label": "ECT", "state": { "temperature": 39 }, "params": {}, "flipX": true }
+    },
+    {
+      "id": "83",
+      "type": "splice",
+      "position": { "x": 3240, "y": -880 },
+      "data": { "id": "83", "type": "splice", "label": "SP83", "state": {}, "params": {} }
+    },
+    {
+      "id": "84",
+      "type": "rpm_sensor",
+      "position": { "x": 3560, "y": -980 },
+      "data": { "id": "84", "type": "rpm_sensor", "label": "CRANKPOS", "state": { "rpm": 0 }, "params": {}, "flipX": true }
+    },
+    {
+      "id": "85",
+      "type": "rpm_sensor",
+      "position": { "x": 3500, "y": -1080 },
+      "data": { "id": "85", "type": "rpm_sensor", "label": "CAMPOS", "state": { "rpm": 0 }, "params": {}, "flipX": true }
+    },
+    {
+      "id": "86",
+      "type": "maf_sensor",
+      "position": { "x": 3220, "y": -1140 },
+      "data": { "id": "86", "type": "maf_sensor", "label": "MAF86", "state": { "flow": 180 }, "params": {} }
+    },
+    {
+      "id": "87",
+      "type": "tps_sensor",
+      "position": { "x": 3220, "y": -1240 },
+      "data": { "id": "87", "type": "tps_sensor", "label": "TPS87", "state": { "position": 0 }, "params": { "vMin": 0.5, "vMax": 4.5 } }
+    },
+    {
+      "id": "88",
+      "type": "net_label",
+      "position": { "x": 3100, "y": -780 },
+      "data": { "id": "88", "type": "net_label", "label": "N-STARTSIG", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "89",
+      "type": "net_label",
+      "position": { "x": 1060, "y": 280 },
+      "data": { "id": "89", "type": "net_label", "label": "N-STARTSIG", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "90",
+      "type": "net_label",
+      "position": { "x": 3620, "y": -1200 },
+      "data": { "id": "90", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    },
+    {
+      "id": "91",
+      "type": "net_label",
+      "position": { "x": 3080, "y": 660 },
+      "data": { "id": "91", "type": "net_label", "label": "N-EARTH", "state": {}, "params": { "color": "#38bdf8" } }
+    }
+  ],
+  "edges": [
+    { "type": "wire", "source": "3", "sourceHandle": "out", "target": "2", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "xy-edge__3out-2gnd" },
+    { "type": "wire", "source": "1", "sourceHandle": "negative", "target": "3", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__1negative-3in" },
+    { "type": "wire", "source": "6", "sourceHandle": "out", "target": "9", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__6out-9in" },
+    { "type": "wire", "source": "8", "sourceHandle": "t_out", "target": "9", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__8t_out-9coil_in" },
+    { "type": "wire", "source": "5", "sourceHandle": "out", "target": "10", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__5out-10in" },
+    { "type": "wire", "source": "8", "sourceHandle": "acc", "target": "9", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__8acc-9coil_in" },
+    { "type": "wire", "source": "8", "sourceHandle": "ign", "target": "10", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__8ign-10coil_in" },
+    { "type": "wire", "source": "9", "sourceHandle": "coil_out", "target": "3", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__9coil_out-3out" },
+    { "type": "wire", "source": "10", "sourceHandle": "coil_out", "target": "3", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__10coil_out-3out" },
+    { "type": "wire", "source": "3", "sourceHandle": "out", "target": "13", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__3out-13in" },
+    { "type": "wire", "source": "9", "sourceHandle": "no", "target": "11", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__9no-11in" },
+    { "type": "wire", "source": "10", "sourceHandle": "no", "target": "12", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__10no-12in" },
+    { "type": "wire", "source": "7", "sourceHandle": "out", "target": "14", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__7out-14in" },
+    { "type": "wire", "source": "17", "sourceHandle": "no_a", "target": "16", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__17no_a-16out" },
+    { "type": "wire", "source": "17", "sourceHandle": "no_b", "target": "15", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__17no_b-15out" },
+    { "type": "wire", "source": "19", "sourceHandle": "out", "target": "15", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__19out-15in" },
+    { "type": "wire", "source": "19", "sourceHandle": "out", "target": "16", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__19out-16in" },
+    { "type": "wire", "source": "20", "sourceHandle": "out", "target": "21", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__20out-21in" },
+    { "type": "wire", "source": "17", "sourceHandle": "coil_out", "target": "18", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__17coil_out-18out" },
+    { "type": "wire", "source": "1", "sourceHandle": "positive", "target": "22", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__1positive-22in" },
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "8", "targetHandle": "batt", "data": { "resistance": 0.001 }, "id": "xy-edge__22out-8batt" },
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "6", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__22out-6in" },
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "5", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__22out-5in" },
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "7", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__22out-7in" },
+    { "type": "wire", "source": "19", "sourceHandle": "out", "target": "24", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__19out-24in" },
+    { "type": "wire", "source": "19", "sourceHandle": "out", "target": "23", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__19out-23in" },
+    { "type": "wire", "source": "21", "sourceHandle": "out", "target": "25", "targetHandle": "com", "data": { "resistance": 0.001 }, "id": "xy-edge__21out-25com" },
+    { "type": "wire", "source": "25", "sourceHandle": "out_nc", "target": "17", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__25out_nc-17coil_in" },
+    { "type": "wire", "source": "18", "sourceHandle": "out", "target": "26", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__18out-26out" },
+    { "type": "wire", "source": "17", "sourceHandle": "com", "target": "26", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "xy-edge__17com-26in" },
+    { "type": "wire", "source": "18", "sourceHandle": "out", "target": "27", "targetHandle": "com", "data": { "resistance": 0.001 }, "id": "xy-edge__18out-27com" },
+    { "type": "wire", "source": "25", "sourceHandle": "out_no", "target": "27", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__25out_no-27coil_in" },
+    { "type": "wire", "source": "27", "sourceHandle": "coil_out", "target": "18", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__27coil_out-18out" },
+    { "type": "wire", "source": "27", "sourceHandle": "no_a", "target": "24", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__27no_a-24out" },
+    { "type": "wire", "source": "27", "sourceHandle": "no_b", "target": "23", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "xy-edge__27no_b-23out" },
+    { "type": "wire", "source": "25", "sourceHandle": "out_no", "target": "28", "targetHandle": "anode", "data": { "resistance": 0.001 }, "id": "xy-edge__25out_no-28anode" },
+    { "type": "wire", "source": "28", "sourceHandle": "cathode", "target": "17", "targetHandle": "coil_in", "data": { "resistance": 0.001 }, "id": "xy-edge__28cathode-17coil_in" },
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "29", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-22-out-29-in" },
+    { "type": "wire", "source": "29", "sourceHandle": "out", "target": "30", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-29-out-30-in" },
+    { "type": "wire", "source": "32", "sourceHandle": "out", "target": "31", "targetHandle": "vcc", "data": { "resistance": 0.001 }, "id": "e-32-out-31-vcc" },
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "31", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-33-out-31-gnd" },
+    { "type": "wire", "source": "31", "sourceHandle": "door", "target": "42", "targetHandle": "r_out", "data": { "resistance": 0.001 }, "id": "e-31-door-42-r_out" },
+    { "type": "wire", "source": "42", "sourceHandle": "t_out", "target": "41", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-42-t_out-41-out" },
+    { "type": "wire", "source": "42", "sourceHandle": "r_out", "target": "38", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-42-r_out-38-out" },
+    { "type": "wire", "source": "42", "sourceHandle": "r_out", "target": "39", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-42-r_out-39-out" },
+    { "type": "wire", "source": "42", "sourceHandle": "r_out", "target": "40", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-42-r_out-40-out" },
+    { "type": "wire", "source": "41", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-41-in-35-out" },
+    { "type": "wire", "source": "38", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-38-in-35-out" },
+    { "type": "wire", "source": "39", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-39-in-35-out" },
+    { "type": "wire", "source": "40", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-40-in-35-out" },
+    { "type": "wire", "source": "37", "sourceHandle": "out", "target": "31", "targetHandle": "out1", "data": { "resistance": 0.001 }, "id": "e-37-out-31-out1" },
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "43", "targetHandle": "r_out", "data": { "resistance": 0.001 }, "id": "e-33-out-43-r_out" },
+    { "type": "wire", "source": "43", "sourceHandle": "b_out", "target": "37", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-43-b_out-37-in" },
+    { "type": "wire", "source": "44", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-44-in-35-out" },
+    { "type": "wire", "source": "31", "sourceHandle": "pbrake", "target": "44", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-31-pbrake-44-out" },
+    { "type": "wire", "source": "43", "sourceHandle": "r_out", "target": "45", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-43-r_out-45-in" },
+    { "type": "wire", "source": "31", "sourceHandle": "out2", "target": "45", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-31-out2-45-out" },
+
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "46", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-33-out-46-gnd" },
+    { "type": "wire", "source": "46", "sourceHandle": "out", "target": "31", "targetHandle": "cabtemp", "data": { "resistance": 0.001 }, "id": "e-46-out-31-cabtemp" },
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "46", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-33-out-46-in-pwr" },
+
+    { "type": "wire", "source": "47", "sourceHandle": "in", "target": "35", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-47-in-35-out" },
+    { "type": "wire", "source": "32", "sourceHandle": "out", "target": "48", "targetHandle": "vcc", "data": { "resistance": 0.001 }, "id": "e-32-out-48-vcc" },
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "48", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-33-out-48-gnd" },
+    { "type": "wire", "source": "31", "sourceHandle": "txd", "target": "48", "targetHandle": "txd", "data": { "resistance": 0.001 }, "id": "e-31-txd-48-txd" },
+    { "type": "wire", "source": "48", "sourceHandle": "rxd", "target": "31", "targetHandle": "rxd", "data": { "resistance": 0.001 }, "id": "e-48-rxd-31-rxd" },
+    { "type": "wire", "source": "31", "sourceHandle": "ac", "target": "47", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-31-ac-47-out" },
+    { "type": "wire", "source": "52", "sourceHandle": "out", "target": "51", "targetHandle": "vcc", "data": { "resistance": 0.001 }, "id": "e-52-out-51-vcc" },
+    { "type": "wire", "source": "53", "sourceHandle": "out", "target": "51", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-53-out-51-gnd" },
+    { "type": "wire", "source": "52", "sourceHandle": "out", "target": "54", "targetHandle": "vcc", "data": { "resistance": 0.001 }, "id": "e-52-out-54-vcc" },
+    { "type": "wire", "source": "53", "sourceHandle": "out", "target": "54", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-53-out-54-gnd" },
+    { "type": "wire", "source": "51", "sourceHandle": "txd", "target": "54", "targetHandle": "txd", "data": { "resistance": 0.001 }, "id": "e-51-txd-54-txd" },
+    { "type": "wire", "source": "54", "sourceHandle": "rxd", "target": "51", "targetHandle": "rxd", "data": { "resistance": 0.001 }, "id": "e-54-rxd-51-rxd" },
+    { "type": "wire", "source": "55", "sourceHandle": "out", "target": "54", "targetHandle": "can_h", "data": { "resistance": 0.001 }, "id": "e-55-out-54-can_h" },
+    { "type": "wire", "source": "56", "sourceHandle": "out", "target": "54", "targetHandle": "can_l", "data": { "resistance": 0.001 }, "id": "e-56-out-54-can_l" },
+    { "type": "wire", "source": "48", "sourceHandle": "can_h", "target": "57", "targetHandle": "can_h_l", "data": { "resistance": 0.001 }, "id": "e-48-can_h-57-can_h_l" },
+    { "type": "wire", "source": "48", "sourceHandle": "can_l", "target": "57", "targetHandle": "can_l_l", "data": { "resistance": 0.001 }, "id": "e-48-can_l-57-can_l_l" },
+    { "type": "wire", "source": "57", "sourceHandle": "can_h_r", "target": "49", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-57-can_h_r-49-in" },
+    { "type": "wire", "source": "57", "sourceHandle": "can_l_r", "target": "50", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-57-can_l_r-50-in" },
+
+    { "type": "wire", "source": "91", "sourceHandle": "out", "target": "58", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-91-out-58-gnd" },
+    { "type": "wire", "source": "33", "sourceHandle": "out", "target": "58", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-33-out-58-in-pwr" },
+    { "type": "wire", "source": "58", "sourceHandle": "out", "target": "31", "targetHandle": "targettemp", "data": { "resistance": 0.001 }, "id": "e-58-out-31-targettemp" },
+
+    { "type": "wire", "source": "22", "sourceHandle": "out", "target": "60", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-22-out-60-in" },
+    { "type": "wire", "source": "60", "sourceHandle": "out", "target": "61", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-60-out-61-in" },
+    { "type": "wire", "source": "62", "sourceHandle": "out", "target": "59", "targetHandle": "com", "data": { "resistance": 0.001 }, "id": "e-62-out-59-com" },
+    { "type": "wire", "source": "59", "sourceHandle": "coil_out", "target": "51", "targetHandle": "Condenser", "data": { "resistance": 0.001 }, "id": "e-59-coil_out-51-Condenser" },
+    { "type": "wire", "source": "59", "sourceHandle": "coil_in", "target": "62", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-59-coil_in-62-out" },
+    { "type": "wire", "source": "65", "sourceHandle": "out", "target": "63", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-65-out-63-out" },
+    { "type": "wire", "source": "65", "sourceHandle": "out", "target": "64", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-65-out-64-out" },
+    { "type": "wire", "source": "59", "sourceHandle": "no_b", "target": "64", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-59-no_b-64-in" },
+    { "type": "wire", "source": "59", "sourceHandle": "no_a", "target": "63", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-59-no_a-63-in" },
+    { "type": "wire", "source": "64", "sourceHandle": "out", "target": "68", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-64-out-68-in" },
+    { "type": "wire", "source": "68", "sourceHandle": "out", "target": "67", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-68-out-67-out" },
+    { "type": "wire", "source": "67", "sourceHandle": "in", "target": "66", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-67-in-66-in" },
+    { "type": "wire", "source": "66", "sourceHandle": "out", "target": "51", "targetHandle": "AcClutch", "data": { "resistance": 0.001 }, "id": "e-66-out-51-AcClutch" },
+    { "type": "wire", "source": "51", "sourceHandle": "inj1", "target": "69", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-inj1-69-in" },
+    { "type": "wire", "source": "51", "sourceHandle": "inj2", "target": "70", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-inj2-70-in" },
+    { "type": "wire", "source": "51", "sourceHandle": "inj3", "target": "71", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-inj3-71-in" },
+    { "type": "wire", "source": "51", "sourceHandle": "inj4", "target": "72", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-inj4-72-in" },
+    { "type": "wire", "source": "69", "sourceHandle": "out", "target": "74", "targetHandle": "t", "data": { "resistance": 0.001 }, "id": "e-69-out-74-t" },
+    { "type": "wire", "source": "70", "sourceHandle": "out", "target": "74", "targetHandle": "t_out", "data": { "resistance": 0.001 }, "id": "e-70-out-74-t_out" },
+    { "type": "wire", "source": "71", "sourceHandle": "out", "target": "74", "targetHandle": "l_out", "data": { "resistance": 0.001 }, "id": "e-71-out-74-l_out" },
+    { "type": "wire", "source": "72", "sourceHandle": "out", "target": "74", "targetHandle": "b", "data": { "resistance": 0.001 }, "id": "e-72-out-74-b" },
+    { "type": "wire", "source": "74", "sourceHandle": "r_out", "target": "73", "targetHandle": "out", "data": { "resistance": 0.001 }, "id": "e-74-r_out-73-out" },
+    { "type": "wire", "source": "51", "sourceHandle": "coil1", "target": "75", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-coil1-75-in" },
+    { "type": "wire", "source": "51", "sourceHandle": "coil2", "target": "76", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-coil2-76-in" },
+    { "type": "wire", "source": "75", "sourceHandle": "out", "target": "74", "targetHandle": "b", "data": { "resistance": 0.001 }, "id": "e-75-out-74-b" },
+    { "type": "wire", "source": "76", "sourceHandle": "out", "target": "74", "targetHandle": "b", "data": { "resistance": 0.001 }, "id": "e-76-out-74-b" },
+    { "type": "wire", "source": "51", "sourceHandle": "fuelpmp", "target": "77", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-fuelpmp-77-in" },
+    { "type": "wire", "source": "77", "sourceHandle": "out", "target": "74", "targetHandle": "b_out", "data": { "resistance": 0.001 }, "id": "e-77-out-74-b_out" },
+    { "type": "wire", "source": "78", "sourceHandle": "out", "target": "74", "targetHandle": "b", "data": { "resistance": 0.001 }, "id": "e-78-out-74-b" },
+    { "type": "wire", "source": "51", "sourceHandle": "start", "target": "78", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-start-78-in" },
+    { "type": "wire", "source": "79", "sourceHandle": "out", "target": "74", "targetHandle": "r", "data": { "resistance": 0.001 }, "id": "e-79-out-74-r" },
+    { "type": "wire", "source": "51", "sourceHandle": "throttle", "target": "79", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-51-throttle-79-in" },
+
+    { "type": "wire", "source": "51", "sourceHandle": "5V", "target": "83", "targetHandle": "l_out", "data": { "resistance": 0.001 }, "id": "e-51-5V-83-l_out" },
+
+    { "type": "wire", "source": "83", "sourceHandle": "b_out", "target": "80", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-83-b_out-80-in-FIXED" },
+    { "type": "wire", "source": "90", "sourceHandle": "out", "target": "80", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-90-out-80-gnd-FIXED" },
+    { "type": "wire", "source": "80", "sourceHandle": "out", "target": "51", "targetHandle": "coolanttemp", "data": { "resistance": 0.001 }, "id": "e-80-out-51-coolanttemp-FIXED" },
+
+    { "type": "wire", "source": "83", "sourceHandle": "r_out", "target": "84", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-83-r_out-84-in-FIXED" },
+    { "type": "wire", "source": "90", "sourceHandle": "out", "target": "84", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-90-out-84-gnd-FIXED" },
+    { "type": "wire", "source": "84", "sourceHandle": "out", "target": "51", "targetHandle": "crankpos", "data": { "resistance": 0.001 }, "id": "e-84-out-51-crankpos-FIXED" },
+
+    { "type": "wire", "source": "83", "sourceHandle": "r_out", "target": "85", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-83-r_out-85-in-FIXED" },
+    { "type": "wire", "source": "90", "sourceHandle": "out", "target": "85", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-90-out-85-gnd-FIXED" },
+    { "type": "wire", "source": "85", "sourceHandle": "out", "target": "51", "targetHandle": "campos", "data": { "resistance": 0.001 }, "id": "e-85-out-51-campos-FIXED" },
+
+    { "type": "wire", "source": "83", "sourceHandle": "t_out", "target": "86", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-83-t_out-86-in-FIXED" },
+    { "type": "wire", "source": "90", "sourceHandle": "out", "target": "86", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-90-out-86-gnd-FIXED" },
+    { "type": "wire", "source": "86", "sourceHandle": "out", "target": "51", "targetHandle": "maf", "data": { "resistance": 0.001 }, "id": "e-86-out-51-maf-FIXED" },
+
+    { "type": "wire", "source": "83", "sourceHandle": "l_out", "target": "87", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-83-l_out-87-in-FIXED" },
+    { "type": "wire", "source": "90", "sourceHandle": "out", "target": "87", "targetHandle": "gnd", "data": { "resistance": 0.001 }, "id": "e-90-out-87-gnd-FIXED" },
+    { "type": "wire", "source": "87", "sourceHandle": "out", "target": "51", "targetHandle": "tps", "data": { "resistance": 0.001 }, "id": "e-87-out-51-tps-FIXED" },
+
+    { "type": "wire", "source": "88", "sourceHandle": "out", "target": "51", "targetHandle": "startinp", "data": { "resistance": 0.001 }, "id": "e-88-out-51-startinp" },
+    { "type": "wire", "source": "8", "sourceHandle": "start", "target": "89", "targetHandle": "in", "data": { "resistance": 0.001 }, "id": "e-8-start-89-in" }
+  ]
+}
