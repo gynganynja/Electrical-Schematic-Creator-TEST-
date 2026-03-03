@@ -42,6 +42,8 @@ export function AirPressureSensorNode({ id, data, selected }: any) {
 
             <MirroredHandle type="target" side={Position.Left} id="in"
                 className="!w-3 !h-3 !bg-red-500 !border-2 !border-white" flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="target" side={Position.Bottom} id="gnd"
+                className="!w-2 !h-2 !bg-green-500 !border !border-white" flipX={flipX} flipY={flipY} />
             <MirroredHandle type="source" side={Position.Right} id="out"
                 className="!w-3 !h-3 !bg-cyan-400 !border-2 !border-white" flipX={flipX} flipY={flipY} />
         </div>

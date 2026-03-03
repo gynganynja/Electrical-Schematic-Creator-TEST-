@@ -105,11 +105,17 @@ function buildNets(nodes: CircuitNode[], edges: CircuitEdge[]): Record<string, s
 
 function getTerminals(type: string, _data?: any): string[] {
     switch (type) {
+        // Power
         case 'battery': return ['positive', 'negative'];
         case 'ground': return ['gnd'];
+
+        // Simple 2-pin (in, out)
         case 'resistor':
         case 'lamp':
         case 'fuse':
+        case 'motor':
+        case 'buzzer':
+        case 'solenoid':
         case 'switch_spst':
         case 'switch_momentary':
         case 'switch_momentary_no':
@@ -122,51 +128,60 @@ function getTerminals(type: string, _data?: any): string[] {
         case 'heater':
         case 'compressor_clutch':
         case 'capacitor':
-        case 'inductor': return ['in', 'out'];
+        case 'inductor':
+        case 'ignition_coil':
+        case 'throttle_actuator':
+        case 'speedo_gauge':
+        case 'tacho_gauge':
+        case 'fuel_gauge': return ['in', 'out'];
+
+        // Wiper motor (3-pin)
         case 'wiper_motor': return ['in', 'out', 'park'];
+
+        // Diodes (anode, cathode)
         case 'diode':
         case 'led':
         case 'tvs_clamp':
         case 'zener': return ['anode', 'cathode'];
+
+        // Potentiometer
         case 'potentiometer': return ['a', 'b', 'wiper'];
+
+        // Relays
         case 'relay_spdt':
         case 'relay_delay_on':
         case 'relay_delay_off': return ['coil_in', 'coil_out', 'com', 'no', 'nc'];
         case 'relay_spst': return ['coil_in', 'coil_out', 'in', 'no'];
         case 'relay_dual87': return ['coil_in', 'coil_out', 'com', 'no_a', 'no_b'];
         case 'relay_latching': return ['set_in', 'set_out', 'reset_in', 'reset_out', 'com', 'no'];
-        case 'battery': return ['positive', 'negative'];
-        case 'ground': return ['gnd'];
+
+        // Switches
         case 'splice': return ['t', 'r', 'b', 'l', 't_out', 'r_out', 'b_out', 'l_out'];
         case 'switch_spdt': return ['com', 'out_nc', 'out_no'];
         case 'switch_dpdt': return ['in_a', 'out_a_nc', 'out_a_no', 'in_b', 'out_b_nc', 'out_b_no'];
         case 'switch_ignition': return ['batt', 'acc', 'ign', 'start'];
-        case 'motor':
-        case 'lamp':
-        case 'buzzer':
-        case 'solenoid':
-        case 'heater':
-        case 'compressor_clutch':
-        case 'ignition_coil':
-        case 'throttle_actuator':
+
+        // Analog sensors — unified 3-wire (in=5Vref, gnd, out=signal)
         case 'temp_sensor':
         case 'oil_press_sensor':
         case 'air_press_sensor':
         case 'wss_sensor':
         case 'rpm_sensor':
-        case 'speedo_gauge':
-        case 'tacho_gauge':
-        case 'fuel_gauge': return ['in', 'out'];
-        case 'tps_sensor': return ['in', 'gnd', 'out'];
-        case 'maf_sensor': return ['vcc', 'gnd', 'out'];
+        case 'tps_sensor':
+        case 'maf_sensor': return ['in', 'gnd', 'out'];
+
+        // CAN networking
         case 'can_bus': return ['can_h_l', 'can_h_r', 'can_l_l', 'can_l_r'];
         case 'can_transceiver': return ['vcc', 'gnd', 'txd', 'rxd', 'can_h', 'can_l', 'en'];
         case 'can_terminator': return ['can_h', 'can_l'];
+
+        // Advanced ECU (dynamic pins)
         case 'ecu_advanced': {
             const inputs = (Array.isArray(_data?.params?.inputs) ? _data.params.inputs : ['in1', 'in2']).map((s: string) => s.toLowerCase());
             const outputs = (Array.isArray(_data?.params?.outputs) ? _data.params.outputs : ['out1', 'out2']).map((s: string) => s.toLowerCase());
             return ['vcc', 'gnd', 'txd', 'rxd', ...inputs, ...outputs];
         }
+
         default: return ['in', 'out'];
     }
 }
@@ -719,15 +734,17 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- TPS Sensor: voltage divider output (0.5V-4.5V) ----
+            // ---- TPS Sensor: 3-wire (in=5Vref, gnd, out=signal 0.5-4.5V) ----
             case 'tps_sensor': {
                 const tpsPos = (d as any).state?.position ?? 0;
                 const tpsVmin = (d as any).params?.vMin ?? 0.5;
                 const tpsVmax = (d as any).params?.vMax ?? 4.5;
                 const tpsVout = tpsVmin + (tpsPos / 100) * (tpsVmax - tpsVmin);
-                // Thevenin: internal vsource -> 1kΩ series -> out pin (avoids MNA vsource conflict)
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: tpsVout, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                // Power load: in → gnd (keeps supply wire alive)
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                // Thevenin output: vsource on internal node ref'd to sensor gnd, 100Ω series to out
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: tpsVout, data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
@@ -954,90 +971,85 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
             case 'net_label':
                 break;
 
-            // ---- Temp Sensor: Linear voltage output (0.5-4.5V over min..max range) ----
+            // ======================================================================
+            // ANALOG SENSORS — Unified 3-wire model (in=5Vref, gnd, out=signal)
+            //   Power load:     10kΩ  from in → gnd  (draws current, keeps wire alive)
+            //   Thevenin output: vsource on internal _sig node ref'd to gnd,
+            //                    100Ω series resistor from _sig → out pin
+            //   This avoids MNA vsource conflicts with ECU input sense resistors.
+            // ======================================================================
+
             case 'temp_sensor': {
                 const temp = d.state?.temperature ?? 25;
-                const minTemp = (d as any).params?.minVal ?? -40;
-                const maxTemp = (d as any).params?.maxVal ?? 150;
+                const minT = (d as any).params?.minVal ?? -40;
+                const maxT = (d as any).params?.maxVal ?? 150;
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(0, Math.min(vMax + 0.5, vMin + ((temp - minTemp) / (maxTemp - minTemp)) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: vOut, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                const ratio = (temp - minT) / (maxT - minT);
+                const vOut = vMin + ratio * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
-            // ---- Oil Pressure Sensor: Linear voltage output (0.5-4.5V over 0..maxPress) ----
             case 'oil_press_sensor': {
                 const press = d.state?.pressure ?? 40;
-                const maxPress = (d as any).params?.maxVal ?? 100;
+                const maxP = (d as any).params?.maxVal ?? 100;
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(0, Math.min(vMax + 0.5, vMin + (press / maxPress) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: vOut, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                const vOut = vMin + (press / maxP) * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
-            // ---- Air Pressure Sensor: MAP Sensor (Voltage Output, 3-wire: in=ref, out=signal) ----
             case 'air_press_sensor': {
                 const press = d.state?.pressure ?? 101.3;
-                const maxPress = (d as any).params?.maxVal ?? 250;
+                const maxP = (d as any).params?.maxVal ?? 250;
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(0, vMin + (press / maxPress) * (vMax - vMin));
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: vOut, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                const vOut = vMin + (press / maxP) * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
-            // ---- MAF Sensor: 3-wire (VCC, GND, OUT) ----
             case 'maf_sensor': {
                 const flow = d.state?.flow ?? 5;
-                const maxFlow = (d as any).params?.maxVal ?? 500;
+                const maxF = (d as any).params?.maxVal ?? 500;
                 const vMin = (d as any).params?.vMin ?? 1.0;
                 const vMax = (d as any).params?.vMax ?? 5.0;
-                const vOut = vMin + (flow / maxFlow) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id + '_pwr',
-                    type: 'resistor',
-                    n1: net('vcc'),
-                    n2: net('gnd'),
-                    value: 1000,
-                    data: d,
-                });
-                components.push({
-                    nodeId: node.id + '_out',
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('gnd'),
-                    value: Math.max(0, vOut),
-                    data: d,
-                });
+                const vOut = vMin + (flow / maxF) * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
-            // ---- Wheel Speed Sensor: VR Generator (in=ref/gnd, out=signal) ----
             case 'wss_sensor': {
                 const speed = d.state?.speed ?? 0;
-                const maxSpeed = (d as any).params?.maxVal ?? 300;
+                const maxS = (d as any).params?.maxVal ?? 300;
                 const vMin = (d as any).params?.vMin ?? 0;
                 const vMax = (d as any).params?.vMax ?? 12;
-                const vOut = Math.max(0, vMin + (speed / maxSpeed) * (vMax - vMin));
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: vOut, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                const vOut = vMin + (speed / maxS) * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
-            // ---- RPM Sensor: Linear voltage output (0.5-4.5V over 0..maxRPM) ----
             case 'rpm_sensor': {
                 const rpm = d.state?.rpm ?? 0;
-                const maxRpm = (d as any).params?.maxVal ?? 8000;
+                const maxR = (d as any).params?.maxVal ?? 8000;
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(0, Math.min(vMax + 0.5, vMin + (rpm / maxRpm) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: '0', value: vOut, data: d });
-                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 1000, data: d });
+                const vOut = vMin + (rpm / maxR) * (vMax - vMin);
+                components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
 
@@ -1824,26 +1836,36 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
-        // Gauges, Sensors & Networking: Update voltage/value state for UI display
-        if (['speedo_gauge', 'tacho_gauge', 'fuel_gauge', 'temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'maf_sensor', 'wss_sensor', 'rpm_sensor', 'can_transceiver', 'ecu_advanced'].includes(d.type as string)) {
-            const vIn = voltages[netMap[`${node.id}:vcc`]] ?? voltages[netMap[`${node.id}:in`]] ?? voltages[netMap[`${node.id}:out`]] ?? 0;
+        // Sensors: Update vcc state from in/gnd pins for UI display
+        if (['temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'maf_sensor', 'wss_sensor', 'rpm_sensor', 'tps_sensor'].includes(d.type as string)) {
+            const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
             const vGnd = voltages[netMap[`${node.id}:gnd`]] ?? 0;
             const voltage = Math.abs(vIn - vGnd);
+            if (voltage !== oldState?.vcc) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, vcc: voltage } } as any });
+            }
+        }
 
+        // Gauges: Update vcc state from in/out pins
+        if (['speedo_gauge', 'tacho_gauge', 'fuel_gauge'].includes(d.type as string)) {
+            const vIn = voltages[netMap[`${node.id}:in`]] ?? voltages[netMap[`${node.id}:out`]] ?? 0;
+            const voltage = Math.abs(vIn);
+            if (voltage !== oldState?.vcc) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, vcc: voltage } } as any });
+            }
+        }
+
+        // ECU Advanced & CAN Transceiver: Update vcc/vH/vL from vcc/gnd/can pins
+        if (['can_transceiver', 'ecu_advanced'].includes(d.type as string)) {
+            const vIn = voltages[netMap[`${node.id}:vcc`]] ?? 0;
+            const vGnd = voltages[netMap[`${node.id}:gnd`]] ?? 0;
+            const voltage = Math.abs(vIn - vGnd);
             const vH = voltages[netMap[`${node.id}:can_h`]] ?? 0;
             const vL = voltages[netMap[`${node.id}:can_l`]] ?? 0;
-
             if (voltage !== oldState?.vcc || vH !== oldState?.vH || vL !== oldState?.vL) {
                 nodeUpdates.push({
                     id: node.id,
-                    data: {
-                        state: {
-                            ...newState,
-                            vcc: voltage,
-                            vH,
-                            vL
-                        }
-                    } as any
+                    data: { state: { ...newState, vcc: voltage, vH, vL } } as any
                 });
             }
         }

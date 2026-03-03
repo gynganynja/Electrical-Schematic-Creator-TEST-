@@ -1,13 +1,15 @@
 import React from 'react';
 import useStore from '../store/useStore';
 import { WIRE_COLORS } from './edges/WireEdge';
-import { Edit3 } from 'lucide-react';
+import { Edit3, X } from 'lucide-react';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // AWG gauge options
 const AWG_OPTIONS = ['', '22', '20', '18', '16', '14', '12', '10', '8', '6', '4', '2', '1', '1/0', '2/0', '4/0'];
 const MM2_OPTIONS = ['', '0.5', '0.75', '1.0', '1.5', '2.5', '4.0', '6.0', '10', '16', '25', '35', '50', '70', '95'];
 
 export function Inspector() {
+    const isMobile = useIsMobile();
     const { nodes, edges, updateNodeData, updateEdgeData, lastSelectedNodeId, lastSelectedEdgeId, setEditingECU } = useStore();
     const selectedNode = lastSelectedNodeId
         ? nodes.find((n) => n.id === lastSelectedNodeId && n.selected)
@@ -16,14 +18,50 @@ export function Inspector() {
         ? edges.find((e) => e.id === lastSelectedEdgeId && e.selected)
         : null;
 
+    const closeMobile = () => {
+        useStore.setState(state => ({
+            nodes: state.nodes.map(n => ({ ...n, selected: false })),
+            edges: state.edges.map(e => ({ ...e, selected: false })),
+        }));
+    };
+
+    const mobileWrapper = (content: React.ReactNode) => {
+        if (!isMobile) return <>{content}</>;
+        const isOpen = !!(selectedNode || selectedEdge);
+        return (
+            <>
+                {isOpen && (
+                    <div
+                        className="fixed inset-0 z-40 bg-black/40"
+                        onClick={closeMobile}
+                    />
+                )}
+                <div
+                    className={`fixed top-0 right-0 bottom-0 z-50 w-80 flex flex-col transition-transform duration-300 ease-out ${
+                        isOpen ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                >
+                    {content}
+                </div>
+            </>
+        );
+    };
+
     // --- Edge Inspector ---
     if (selectedEdge) {
         const eData = (selectedEdge.data || {}) as any;
-        return (
+        return mobileWrapper(
             <div className="w-80 border-l border-white/10 bg-slate-900/60 backdrop-blur-md flex flex-col h-full shadow-xl">
                 <div className="p-4 border-b border-white/10 font-semibold text-sm flex items-center justify-between text-slate-100 tracking-wide">
                     <span>Inspector</span>
-                    <span className="text-xs px-2 py-0.5 bg-slate-800 text-emerald-400 rounded-md font-mono border border-slate-700/50 shadow-inner">wire</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-0.5 bg-slate-800 text-emerald-400 rounded-md font-mono border border-slate-700/50 shadow-inner">wire</span>
+                        {isMobile && (
+                            <button onClick={closeMobile} className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white">
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-4">
                     {/* Wire Color */}
@@ -77,6 +115,7 @@ export function Inspector() {
     }
 
     if (!selectedNode) {
+        if (isMobile) return mobileWrapper(null);
         return (
             <div className="w-80 border-l border-white/10 bg-slate-900/60 backdrop-blur-md flex flex-col h-full shadow-xl">
                 <div className="p-4 border-b border-white/10 font-semibold text-sm text-slate-100 tracking-wide">Inspector</div>
@@ -89,11 +128,18 @@ export function Inspector() {
 
     const data = selectedNode.data as any;
 
-    return (
+    return mobileWrapper(
         <div className="w-80 border-l border-white/10 bg-slate-900/60 backdrop-blur-md flex flex-col h-full shadow-xl">
             <div className="p-4 border-b border-white/10 font-semibold text-sm flex items-center justify-between text-slate-100 tracking-wide">
                 <span>Inspector</span>
-                <span className="text-xs px-2 py-0.5 bg-slate-800 text-blue-400 rounded-md font-mono border border-slate-700/50 shadow-inner">{data.type}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 bg-slate-800 text-blue-400 rounded-md font-mono border border-slate-700/50 shadow-inner">{data.type}</span>
+                    {isMobile && (
+                        <button onClick={closeMobile} className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white">
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-4">
                 {/* Label */}

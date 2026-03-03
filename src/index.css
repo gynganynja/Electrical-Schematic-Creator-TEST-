@@ -19,6 +19,8 @@ html,
 body,
 #root {
   height: 100%;
+  /* Use dvh on mobile to account for browser chrome */
+  height: 100dvh;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -26,6 +28,24 @@ body,
   color: #f1f5f9;
   /* slate-100 */
   /* Background applied in App component root */
+  /* Safe area insets for notched phones */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent default browser touch behaviors on the canvas area */
+.react-flow {
+  touch-action: none;
+}
+
+/* Make handles larger / easier to tap on touch screens */
+@media (pointer: coarse) {
+  .react-flow__handle {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 /* Custom XYFlow styles to make standard nodes look better in dark mode */

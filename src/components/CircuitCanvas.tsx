@@ -256,6 +256,8 @@ function makeDefaultData(type: string, id: string): Record<string, any> {
             return { id, type, label: `IGN${id}`, state: { activated: false }, params: { resistance: 1.2 } };
         case 'throttle_actuator':
             return { id, type, label: `THA${id}`, state: { activated: false, position: 0 }, params: { resistance: 2.5 } };
+        case 'rpm_sensor':
+            return { id, type, label: `RPM${id}`, state: { rpm: 0 }, params: {} };
         case 'wss_sensor':
             return { id, type, label: `WSS${id}`, state: { speed: 0 }, params: {} };
         case 'speedo_gauge':

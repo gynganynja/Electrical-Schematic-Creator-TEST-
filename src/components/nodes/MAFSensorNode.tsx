@@ -40,8 +40,8 @@ export function MAFSensorNode({ id, data, selected }: any) {
                 OUT {vOut.toFixed(2)}V
             </div>
 
-            <MirroredHandle type="target" side={Position.Top} id="vcc"
-                className="!w-2 !h-2 !bg-red-500 !border !border-white" flipX={flipX} flipY={flipY} />
+            <MirroredHandle type="target" side={Position.Left} id="in"
+                className="!w-3 !h-3 !bg-red-500 !border-2 !border-white" flipX={flipX} flipY={flipY} />
             <MirroredHandle type="target" side={Position.Bottom} id="gnd"
                 className="!w-2 !h-2 !bg-green-500 !border !border-white" flipX={flipX} flipY={flipY} />
             <MirroredHandle type="source" side={Position.Right} id="out"
