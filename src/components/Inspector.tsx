@@ -197,6 +197,27 @@ export function Inspector() {
                     </FieldGroup>
                 )}
 
+                {data.type === 'led' && (
+                    <>
+                        <FieldGroup label="LED Colour">
+                            <input
+                                type="color"
+                                value={data.params?.color ?? '#ef4444'}
+                                onChange={(e) => updateNodeData(selectedNode.id, { params: { ...data.params, color: e.target.value } } as any)}
+                                className="w-full h-9 border border-slate-700 bg-slate-950/50 rounded cursor-pointer"
+                            />
+                        </FieldGroup>
+                        <FieldGroup label="Resistance (Ω)">
+                            <input
+                                type="number"
+                                value={data.params?.resistance ?? 150}
+                                onChange={(e) => updateNodeData(selectedNode.id, { params: { ...data.params, resistance: Number(e.target.value) } } as any)}
+                                className="w-full border border-slate-700 bg-slate-950/50 text-slate-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
+                            />
+                        </FieldGroup>
+                    </>
+                )}
+
                 {data.type === 'fuse' && (
                     <>
                         <FieldGroup label="Trip Current (A)">

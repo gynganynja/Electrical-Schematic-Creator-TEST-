@@ -593,17 +593,19 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- LED: resistive load (forward-biased model) ----
-            case 'led':
+            // ---- LED: diode + series resistance (polarity-aware) ----
+            case 'led': {
+                const ledFwd = (d as any).state?.forward !== false;
                 components.push({
                     nodeId: node.id,
                     type: 'resistor',
                     n1: net('anode'),
                     n2: net('cathode'),
-                    value: d.params?.resistance ?? 150,
+                    value: ledFwd ? (d.params?.resistance ?? 150) : 1e9,
                     data: d,
                 });
                 break;
+            }
 
             // ---- Diode: polarity-aware iterative model ----
             // forward=true (default) → 0.01Ω; reverse → 1e9Ω (open)
@@ -1676,11 +1678,12 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
 
             // Diode polarity check — flip forward/reverse state each iteration
-            if ((d as any).type === 'diode') {
+            if ((d as any).type === 'diode' || (d as any).type === 'led') {
                 const vAnode    = voltages[netMap[`${node.id}:anode`]]   ?? 0;
                 const vCathode  = voltages[netMap[`${node.id}:cathode`]] ?? 0;
+                const fwdDrop   = (d as any).type === 'led' ? 1.8 : ((d as any).params?.forwardDrop ?? 0.7);
                 const wasFwd    = nodeStates[node.id]?.forward !== false;
-                const nowFwd    = vAnode > vCathode;
+                const nowFwd    = (vAnode - vCathode) > fwdDrop;
                 if (wasFwd !== nowFwd) {
                     nodeStates[node.id] = { ...nodeStates[node.id], forward: nowFwd };
                     stateChanged = true;
@@ -1755,11 +1758,11 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
-        // LED on/off
+        // LED on/off — only lights when forward-biased
         if ((d as any).type === 'led') {
             const vIn = voltages[netMap[`${node.id}:anode`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:cathode`]] ?? 0;
-            const isOn = Math.abs(vIn - vOut) > 0.5;
+            const isOn = (vIn - vOut) > 1.8;
             if (isOn !== oldState?.on) {
                 nodeUpdates.push({ id: node.id, data: { state: { ...newState, on: isOn } } as any });
             }
