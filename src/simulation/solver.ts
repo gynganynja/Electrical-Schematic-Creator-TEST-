@@ -977,7 +977,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + ((temp - minTemp) / (maxTemp - minTemp)) * (vMax - vMin);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
                 components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
@@ -989,7 +988,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxPress) * (vMax - vMin);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
                 components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
@@ -1001,7 +999,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxPress) * (vMax - vMin);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
                 components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, vOut), data: d });
                 break;
             }
@@ -1039,7 +1036,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0;
                 const vMax = (d as any).params?.vMax ?? 12;
                 const vOut = vMin + (speed / maxSpeed) * (vMax - vMin);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
                 components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, vOut), data: d });
                 break;
             }
@@ -1051,7 +1047,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (rpm / maxRpm) * (vMax - vMin);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
                 components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
