@@ -147,40 +147,25 @@ function App() {
     }
 
     // 1b. Map ECUs to their logical CAN bus
-    const ecuToBusMap = new Map<string, string>(); // ECU ID -> logical Bus ID
-
-    // DEBUG: dump CAN-related nets
-    console.log('[CAN DEBUG] logicalBusNets:', Object.fromEntries([...logicalBusNets.entries()].map(([k,v])=>[k,[...v]])));
-    for (const t of transceivers) {
-      console.log(`[CAN DEBUG] transceiver ${t.id} can_h net:`, result.netMap[`${t.id}:can_h`], 'txd net:', result.netMap[`${t.id}:txd`]);
-    }
-    for (const bus of canBuses) {
-      console.log(`[CAN DEBUG] bus ${bus.id} can_h_l:`, result.netMap[`${bus.id}:can_h_l`], 'can_h_r:', result.netMap[`${bus.id}:can_h_r`]);
-    }
+    const ecuToBusMap = new Map<string, string>();
 
     for (const ecu of advEcus) {
       const ecuTxdNet = result.netMap[`${ecu.id}:txd`];
-      if (!ecuTxdNet) { console.log(`[CAN DEBUG] ECU ${ecu.id}: no txd net`); continue; }
+      if (!ecuTxdNet) continue;
 
       const connectedTransceiver = transceivers.find((t: RFNode) => result.netMap[`${t.id}:txd`] === ecuTxdNet);
-      if (!connectedTransceiver) { console.log(`[CAN DEBUG] ECU ${ecu.id}: no transceiver found for txd net ${ecuTxdNet}`); continue; }
+      if (!connectedTransceiver) continue;
 
       const transceiverCanHNet = result.netMap[`${connectedTransceiver.id}:can_h`];
-      if (!transceiverCanHNet) { console.log(`[CAN DEBUG] ECU ${ecu.id}: transceiver ${connectedTransceiver.id} has no can_h net`); continue; }
+      if (!transceiverCanHNet) continue;
       const tRoot = ufFind(transceiverCanHNet);
 
-      console.log(`[CAN DEBUG] ECU ${ecu.id} -> XCVR ${connectedTransceiver.id} -> can_h net: ${transceiverCanHNet} -> ufRoot: ${tRoot}`);
-
-      let found = false;
       for (const [logical, netRoots] of logicalBusNets.entries()) {
         if (netRoots.has(tRoot)) {
           ecuToBusMap.set(ecu.id, logical);
-          console.log(`[CAN DEBUG] ECU ${ecu.id} mapped to logical bus ${logical}`);
-          found = true;
           break;
         }
       }
-      if (!found) console.log(`[CAN DEBUG] ECU ${ecu.id}: tRoot ${tRoot} NOT found in any logicalBusNets`);
     }
 
     // 2. Execute Logic for ALL Advanced ECUs independently

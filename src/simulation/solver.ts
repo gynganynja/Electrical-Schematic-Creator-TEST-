@@ -13,7 +13,7 @@
  *  6. Iterate until stable or max iterations reached.
  */
 
-import { lusolve, matrix } from 'mathjs';
+// Native linear solver — no external math library needed
 import type { CircuitNode, CircuitEdge, AnyComponentData } from '../types/circuit';
 
 // ----- Solver output types -----
@@ -1305,9 +1305,10 @@ function solveMNA(
         return { voltages: {}, currents: {} };
     }
 
-    // Build matrices as 2D arrays
-    const A: number[][] = Array.from({ length: size }, () => new Array(size).fill(0));
-    const z: number[] = new Array(size).fill(0);
+    // Build augmented matrix [A|z] directly in a flat Float64Array
+    // Row-major layout: row r, col c => aug[r * (size+1) + c], last col = z
+    const w = size + 1;
+    const aug = new Float64Array(size * w); // zero-initialized
 
     // Helper to get index (-1 means ground)
     const idx = (net: string): number => {
@@ -1315,73 +1316,112 @@ function solveMNA(
         return netIndex[net] ?? -1;
     };
 
-    // Stamp resistors
+    // Stamp resistors directly into augmented matrix
     for (const c of components) {
         if (c.type !== 'resistor') continue;
         const g = 1 / c.value;
         const i1 = idx(c.n1);
         const i2 = idx(c.n2);
 
-        if (i1 >= 0) A[i1][i1] += g;
-        if (i2 >= 0) A[i2][i2] += g;
+        if (i1 >= 0) aug[i1 * w + i1] += g;
+        if (i2 >= 0) aug[i2 * w + i2] += g;
         if (i1 >= 0 && i2 >= 0) {
-            A[i1][i2] -= g;
-            A[i2][i1] -= g;
+            aug[i1 * w + i2] -= g;
+            aug[i2 * w + i1] -= g;
         }
     }
 
     // Gmin - Small conductance to ground for all nodes to ensure matrix is non-singular
     const Gmin = 1e-12;
     for (let i = 0; i < N; i++) {
-        A[i][i] += Gmin;
+        aug[i * w + i] += Gmin;
     }
 
     // Stamp voltage sources
-    vsources.forEach((vs, k) => {
-        const i1 = idx(vs.n1); // positive
-        const i2 = idx(vs.n2); // negative
+    for (let k = 0; k < M; k++) {
+        const vs = vsources[k];
+        const i1 = idx(vs.n1);
+        const i2 = idx(vs.n2);
         const col = N + k;
         const row = N + k;
 
         if (i1 >= 0) {
-            A[i1][col] += 1;
-            A[row][i1] += 1;
+            aug[i1 * w + col] += 1;
+            aug[row * w + i1] += 1;
         }
         if (i2 >= 0) {
-            A[i2][col] -= 1;
-            A[row][i2] -= 1;
+            aug[i2 * w + col] -= 1;
+            aug[row * w + i2] -= 1;
         }
 
-        z[row] = vs.value;
+        aug[row * w + size] = vs.value; // z[row]
+    }
+
+    const n = size;
+
+    // Forward elimination with partial pivoting
+    for (let col = 0; col < n; col++) {
+        // Find pivot
+        let maxVal = Math.abs(aug[col * (n + 1) + col]);
+        let maxRow = col;
+        for (let r = col + 1; r < n; r++) {
+            const v = Math.abs(aug[r * (n + 1) + col]);
+            if (v > maxVal) { maxVal = v; maxRow = r; }
+        }
+
+        if (maxVal < 1e-20) continue; // Skip near-zero pivot (singular column)
+
+        // Swap rows
+        if (maxRow !== col) {
+            const w = n + 1;
+            const baseA = col * w, baseB = maxRow * w;
+            for (let c = col; c <= n; c++) {
+                const tmp = aug[baseA + c];
+                aug[baseA + c] = aug[baseB + c];
+                aug[baseB + c] = tmp;
+            }
+        }
+
+        // Eliminate below
+        const pivotBase = col * (n + 1);
+        const pivotVal = aug[pivotBase + col];
+        for (let r = col + 1; r < n; r++) {
+            const rBase = r * (n + 1);
+            const factor = aug[rBase + col] / pivotVal;
+            if (factor === 0) continue;
+            for (let c = col + 1; c <= n; c++) {
+                aug[rBase + c] -= factor * aug[pivotBase + c];
+            }
+            aug[rBase + col] = 0;
+        }
+    }
+
+    // Back substitution
+    const x = new Float64Array(n);
+    for (let r = n - 1; r >= 0; r--) {
+        const rBase = r * (n + 1);
+        let sum = aug[rBase + n];
+        for (let c = r + 1; c < n; c++) {
+            sum -= aug[rBase + c] * x[c];
+        }
+        const diag = aug[rBase + r];
+        x[r] = diag !== 0 ? sum / diag : 0;
+    }
+
+    const voltages: Record<string, number> = {};
+    for (let i = 0; i < N; i++) {
+        voltages[netList[i]] = x[i];
+    }
+    for (const gn of groundNets) {
+        voltages[gn] = 0;
+    }
+
+    const currents: Record<string, number> = {};
+    vsources.forEach((vs, k) => {
+        currents[vs.nodeId] = x[N + k];
     });
 
-    // Solve Ax = z using mathjs
-    try {
-        const matA = matrix(A);
-        const matZ = matrix(z.map(v => [v]));
-        const result = lusolve(matA, matZ);
-        const x = (result.toArray() as number[][]).map(row => row[0]);
-
-        const voltages: Record<string, number> = {};
-        for (let i = 0; i < N; i++) {
-            voltages[netList[i]] = x[i];
-        }
-        // Ground nets are 0V
-        for (const gn of groundNets) {
-            voltages[gn] = 0;
-        }
-
-        const currents: Record<string, number> = {};
-        vsources.forEach((vs, k) => {
-            currents[vs.nodeId] = x[N + k];
-        });
-
-        return { voltages, currents };
-    } catch (e) {
-        // Singular matrix — likely open circuit or floating net
-        console.error('MNA solve failed:', e);
-        return { voltages: {}, currents: {} };
-    }
+    return { voltages, currents };
 }
 
 /**
@@ -1738,7 +1778,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             const parkClosed = pos !== 0;
             const updatedState = { ...newState, running: isRunning, pos, parkClosed };
 
-            if (JSON.stringify(updatedState) !== JSON.stringify(oldState)) {
+            if (isRunning !== oldState?.running || pos !== oldState?.pos || parkClosed !== oldState?.parkClosed) {
                 nodeUpdates.push({ id: node.id, data: { state: updatedState } as any });
             }
         }
@@ -1748,11 +1788,10 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             const vIn = voltages[netMap[`${node.id}:anode`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:cathode`]] ?? 0;
             const fwd = newState?.forward ?? (vIn > vOut);
-            const updatedState: any = { ...newState, forward: fwd };
-            if ((d as any).type === 'led') {
-                updatedState.on = (vIn - vOut) > 1.8;
-            }
-            if (JSON.stringify(updatedState) !== JSON.stringify(oldState)) {
+            const isOn = (d as any).type === 'led' ? (vIn - vOut) > 1.8 : undefined;
+            if (fwd !== oldState?.forward || isOn !== oldState?.on) {
+                const updatedState: any = { ...newState, forward: fwd };
+                if (isOn !== undefined) updatedState.on = isOn;
                 nodeUpdates.push({ id: node.id, data: { state: updatedState } as any });
             }
         }
@@ -1865,7 +1904,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
         // Programmable Node state updates (ECU, Relays, etc.)
         if (['ecu', 'relay_spdt', 'relay_spst', 'relay_dual87', 'relay_latching', 'relay_delay_on', 'relay_delay_off', 'fuse', 'fusible_link', 'breaker_manual', 'breaker_auto'].includes(d.type as string)) {
-            if (JSON.stringify(newState) !== JSON.stringify(oldState)) {
+            if (newState?.energized !== oldState?.energized || newState?.blown !== oldState?.blown) {
                 nodeUpdates.push({ id: node.id, data: { state: newState } as any });
             }
         }
@@ -1907,12 +1946,19 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
-        edgeUpdates.push({
-            id: edge.id,
-            style: { stroke: color, strokeWidth: 2 },
-            animated,
-            data: { voltage },
-        });
+        // Only push update if edge color/animation/voltage actually changed
+        const ed = (edge as any).data;
+        const oldColor = (edge as any).style?.stroke;
+        const oldAnimated = (edge as any).animated ?? false;
+        const oldVoltage = ed?.voltage;
+        if (color !== oldColor || animated !== oldAnimated || voltage !== oldVoltage) {
+            edgeUpdates.push({
+                id: edge.id,
+                style: { stroke: color, strokeWidth: 2 },
+                animated,
+                data: { voltage },
+            });
+        }
     }
 
     return { nodeUpdates, edgeUpdates, events, nodeVoltages: voltages, netMap };
