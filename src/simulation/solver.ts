@@ -746,68 +746,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 break;
             }
 
-            // ---- Analog Sensors: vsource from out pin referenced to in (power) pin ----
-            // Each sensor computes its voltage from state and drives it onto the out pin.
-            case 'rpm_sensor': {
-                const rpm = (d as any).state?.rpm ?? 0;
-                const maxRpm = (d as any).params?.maxVal ?? 8000;
-                const vMin = (d as any).params?.vMin ?? 0.5;
-                const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(vMin, Math.min(vMax, vMin + (rpm / maxRpm) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: '0', value: vOut, data: d });
-                break;
-            }
-            case 'temp_sensor': {
-                const temperature = (d as any).state?.temperature ?? 25;
-                const minTemp = (d as any).params?.minVal ?? -40;
-                const maxTemp = (d as any).params?.maxVal ?? 150;
-                const vMin = (d as any).params?.vMin ?? 0.5;
-                const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(vMin, Math.min(vMax, vMin + ((temperature - minTemp) / (maxTemp - minTemp)) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: '0', value: vOut, data: d });
-                break;
-            }
-            case 'oil_press_sensor': {
-                const pressure = (d as any).state?.pressure ?? 40;
-                const maxPress = (d as any).params?.maxVal ?? 100;
-                const vMin = (d as any).params?.vMin ?? 0.5;
-                const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(vMin, Math.min(vMax, vMin + (pressure / maxPress) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: '0', value: vOut, data: d });
-                break;
-            }
-            case 'air_press_sensor': {
-                const pressure = (d as any).state?.pressure ?? 101.3;
-                const maxPress = (d as any).params?.maxVal ?? 250;
-                const vMin = (d as any).params?.vMin ?? 0.5;
-                const vMax = (d as any).params?.vMax ?? 4.5;
-                const vOut = Math.max(vMin, Math.min(vMax, vMin + (pressure / maxPress) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: '0', value: vOut, data: d });
-                break;
-            }
-            case 'wss_sensor': {
-                const speed = (d as any).state?.speed ?? 0;
-                const maxSpeed = (d as any).params?.maxVal ?? 300;
-                const vOut = Math.min(12, (speed / maxSpeed) * 12);
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: '0', value: vOut, data: d });
-                break;
-            }
-            case 'maf_sensor': {
-                const flow = (d as any).state?.flow ?? 5;
-                const maxFlow = (d as any).params?.maxVal ?? 500;
-                const vMin = (d as any).params?.vMin ?? 1.0;
-                const vMax = (d as any).params?.vMax ?? 5.0;
-                const vOut = Math.max(vMin, Math.min(vMax, vMin + (flow / maxFlow) * (vMax - vMin)));
-                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('vcc'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_out', type: 'vsource', n1: net('out'), n2: net('gnd'), value: vOut, data: d });
-                break;
-            }
-
             // ---- Throttle Actuator: DC motor load ----
             case 'throttle_actuator':
                 components.push({
@@ -1039,14 +977,8 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + ((temp - minTemp) / (maxTemp - minTemp)) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id,
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('in'),
-                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
-                    data: d,
-                });
+                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
+                components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
 
@@ -1057,14 +989,8 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxPress) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id,
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('in'),
-                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
-                    data: d,
-                });
+                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
+                components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
 
@@ -1075,14 +1001,8 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxPress) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id,
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('in'),
-                    value: Math.max(0, vOut),
-                    data: d,
-                });
+                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
+                components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, vOut), data: d });
                 break;
             }
 
@@ -1119,14 +1039,8 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0;
                 const vMax = (d as any).params?.vMax ?? 12;
                 const vOut = vMin + (speed / maxSpeed) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id,
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('in'),
-                    value: Math.max(0, vOut),
-                    data: d,
-                });
+                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
+                components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, vOut), data: d });
                 break;
             }
 
@@ -1137,14 +1051,8 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMin = (d as any).params?.vMin ?? 0.5;
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (rpm / maxRpm) * (vMax - vMin);
-                components.push({
-                    nodeId: node.id,
-                    type: 'vsource',
-                    n1: net('out'),
-                    n2: net('in'),
-                    value: Math.max(0, Math.min(vMax + 0.5, vOut)),
-                    data: d,
-                });
+                components.push({ nodeId: node.id + '_load', type: 'resistor', n1: net('in'), n2: '0', value: 10000, data: d });
+                components.push({ nodeId: node.id, type: 'vsource', n1: net('out'), n2: '0', value: Math.max(0, Math.min(vMax + 0.5, vOut)), data: d });
                 break;
             }
 
