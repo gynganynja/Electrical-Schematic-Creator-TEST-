@@ -172,7 +172,12 @@ function App() {
 
       const oldOutputs = d.state?.outputs || {};
       const oldPending = d.state?.pendingCAN || [];
-      const replacer = (_key: string, value: any) => typeof value === 'number' && isNaN(value) ? null : value;
+      // Normalize outputs for comparison: NaN → 'HiZ', finite number preserved as-is
+      const normalizeOutputs = (o: Record<string, any>) => {
+        const r: Record<string, any> = {};
+        for (const k of Object.keys(o)) r[k] = (typeof o[k] === 'number' && isNaN(o[k])) ? 'HiZ' : o[k];
+        return r;
+      };
 
       // Build output voltages map for the Live I/O display
       const outputVoltages: Record<string, number> = {};
@@ -181,8 +186,9 @@ function App() {
         if (typeof v === 'number' && !isNaN(v)) outputVoltages[name] = v;
       });
 
-      if (JSON.stringify(oldOutputs, replacer) !== JSON.stringify(logicResult.outputs, replacer) ||
-        JSON.stringify(oldPending, replacer) !== JSON.stringify(logicResult.canFrames, replacer) ||
+      const nanToNull = (_k: string, v: any) => (typeof v === 'number' && isNaN(v) ? null : v);
+      if (JSON.stringify(normalizeOutputs(oldOutputs)) !== JSON.stringify(normalizeOutputs(logicResult.outputs)) ||
+        JSON.stringify(oldPending, nanToNull) !== JSON.stringify(logicResult.canFrames, nanToNull) ||
         JSON.stringify(d.state?.inputVoltages) !== JSON.stringify(logicInputs)) {
 
         state.updateNodeData(ecu.id, {
@@ -197,7 +203,7 @@ function App() {
 
         result.events.push({
           level: 'info',
-          message: `ECU ${d.label || ecu.id} Logic Update. In: ${JSON.stringify(logicInputs)} -> Out: ${JSON.stringify(logicResult.outputs, replacer)}`
+          message: `ECU ${d.label || ecu.id} Logic Update. In: ${JSON.stringify(logicInputs)} -> Out: ${JSON.stringify(logicResult.outputs, nanToNull)}`
         });
       }
 
@@ -418,11 +424,11 @@ function App() {
   return (
     <ReactFlowProvider>
       <div className="flex h-screen w-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100 font-sans">
-        {/* Left Palette */}
+        {/* Left Palette: desktop sidebar only — mobile renders as FAB+drawer internally */}
         <Palette />
 
         {/* Center Canvas + Toolbar + Console */}
-        <div className="flex-1 flex flex-col relative h-full overflow-hidden">
+        <div className="flex-1 flex flex-col relative h-full overflow-hidden min-w-0">
           <Toolbar
             simState={simState}
             onRun={onRun}
@@ -445,7 +451,7 @@ function App() {
         <FaultInjectionPanel />
         <RulesEditor />
 
-        {/* Right Inspector */}
+        {/* Right Inspector: desktop inline sidebar, mobile overlay (handled inside Inspector) */}
         <Inspector />
       </div>
     </ReactFlowProvider>
