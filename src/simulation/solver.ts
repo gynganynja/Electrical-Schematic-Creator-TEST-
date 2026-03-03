@@ -147,6 +147,7 @@ function getTerminals(type: string, _data?: any): string[] {
         case 'solenoid':
         case 'heater':
         case 'compressor_clutch':
+        case 'ignition_coil':
         case 'temp_sensor':
         case 'oil_press_sensor':
         case 'air_press_sensor':
@@ -155,6 +156,7 @@ function getTerminals(type: string, _data?: any): string[] {
         case 'speedo_gauge':
         case 'tacho_gauge':
         case 'fuel_gauge': return ['in', 'out'];
+        case 'tps_sensor': return ['in', 'gnd', 'out'];
         case 'maf_sensor': return ['vcc', 'gnd', 'out'];
         case 'can_bus': return ['can_h_l', 'can_h_r', 'can_l_l', 'can_l_r'];
         case 'can_transceiver': return ['vcc', 'gnd', 'txd', 'rxd', 'can_h', 'can_l', 'en'];
@@ -712,6 +714,45 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                     n1: net('in'),
                     n2: net('out'),
                     value: d.params?.resistance ?? 0.1,
+                    data: d,
+                });
+                break;
+
+            // ---- TPS Sensor: voltage divider output (0.5V-4.5V) ----
+            case 'tps_sensor': {
+                const tpsPos = (d as any).state?.position ?? 0;
+                const tpsVmin = (d as any).params?.vMin ?? 0.5;
+                const tpsVmax = (d as any).params?.vMax ?? 4.5;
+                const tpsVout = tpsVmin + (tpsPos / 100) * (tpsVmax - tpsVmin);
+                // High-impedance sense to GND (load)
+                components.push({
+                    nodeId: node.id + '_load',
+                    type: 'resistor',
+                    n1: net('in'),
+                    n2: net('gnd'),
+                    value: 10000,
+                    data: d,
+                });
+                // Output vsource referenced to sensor GND
+                components.push({
+                    nodeId: node.id + '_out',
+                    type: 'vsource',
+                    n1: net('out'),
+                    n2: net('gnd'),
+                    value: tpsVout,
+                    data: d,
+                });
+                break;
+            }
+
+            // ---- Ignition Coil: primary winding resistive load ----
+            case 'ignition_coil':
+                components.push({
+                    nodeId: node.id,
+                    type: 'resistor',
+                    n1: net('in'),
+                    n2: net('out'),
+                    value: d.params?.resistance ?? 1.2,
                     data: d,
                 });
                 break;
@@ -1755,6 +1796,16 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
         // Solenoid activated
         if ((d as any).type === 'solenoid') {
+            const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
+            const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
+            const isActivated = Math.abs(vIn - vOut) > 1;
+            if (isActivated !== oldState?.activated) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...newState, activated: isActivated } } as any });
+            }
+        }
+
+        // Ignition coil firing
+        if ((d as any).type === 'ignition_coil') {
             const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
             const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
             const isActivated = Math.abs(vIn - vOut) > 1;

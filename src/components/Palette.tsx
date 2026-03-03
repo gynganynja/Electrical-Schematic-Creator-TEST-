@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ComponentType } from '../types/circuit';
-import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag, Thermometer, Droplets, Wind, Network, RotateCw, LayoutTemplate } from 'lucide-react';
+import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag, Thermometer, Droplets, Wind, Network, RotateCw, LayoutTemplate, Plus, X } from 'lucide-react';
 import { EXAMPLE_PROJECTS } from '../examples/circuits';
 import useStore from '../store/useStore';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface PaletteItemProps {
     type: ComponentType;
@@ -50,6 +51,8 @@ const PALETTE_ITEMS: PaletteItemProps[] = [
     { type: 'ecu', label: 'ECU Module', icon: <Cpu size={18} /> },
     { type: 'connector', label: 'Connector', icon: <Plug size={18} /> },
     { type: 'maf_sensor', label: 'MAF Sensor', icon: <Activity size={18} /> },
+    { type: 'tps_sensor', label: 'TPS Sensor', icon: <Gauge size={18} /> },
+    { type: 'ignition_coil', label: 'Ignition Coil', icon: <Zap size={18} /> },
     { type: 'temp_sensor', label: 'Temp Sensor', icon: <Thermometer size={18} /> },
     { type: 'oil_press_sensor', label: 'Oil Pressure', icon: <Droplets size={18} /> },
     { type: 'air_press_sensor', label: 'Air Pressure', icon: <Wind size={18} /> },
@@ -69,100 +72,149 @@ const PALETTE_ITEMS: PaletteItemProps[] = [
     { type: 'schematic_frame', label: 'Schematic Frame', icon: <LayoutTemplate size={18} /> },
 ];
 
+const SECTIONS: { label: string; types: string[] }[] = [
+    { label: 'Power', types: ['battery', 'ground'] },
+    { label: 'Protection', types: ['fuse', 'diode', 'breaker_manual', 'breaker_auto', 'fusible_link', 'tvs_clamp'] },
+    { label: 'Switching', types: ['switch_spst', 'switch_momentary_no', 'switch_momentary_nc', 'switch_spdt', 'switch_dpdt', 'switch_ignition', 'switch_master', 'relay_spdt', 'relay_spst', 'relay_dual87', 'relay_latching', 'relay_delay_on', 'relay_delay_off', 'flasher'] },
+    { label: 'Loads / Outputs', types: ['lamp', 'led', 'resistor', 'motor', 'buzzer', 'solenoid', 'heater', 'compressor_clutch', 'wiper_motor', 'ignition_coil'] },
+    { label: 'Passives / ECU', types: ['capacitor', 'inductor', 'zener', 'potentiometer', 'ecu'] },
+    { label: 'Sensors', types: ['maf_sensor', 'tps_sensor', 'temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'wss_sensor', 'rpm_sensor'] },
+    { label: 'Gauges', types: ['speedo_gauge', 'tacho_gauge', 'fuel_gauge'] },
+    { label: 'Networking / Advanced ECU', types: ['can_bus', 'can_transceiver', 'can_terminator', 'ecu_advanced'] },
+    { label: 'Annotation / Export', types: ['schematic_frame'] },
+    { label: 'Wiring / Harness', types: ['splice', 'cable_resistance', 'connector', 'net_label', 'harness_entry', 'harness_exit'] },
+];
+
+function PaletteContent({
+    onDragStart,
+    onTapAdd,
+    isMobile,
+}: {
+    onDragStart: (e: React.DragEvent, type: ComponentType) => void;
+    onTapAdd: (type: ComponentType) => void;
+    isMobile: boolean;
+}) {
+    return (
+        <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-1.5">
+            {SECTIONS.map(section => (
+                <React.Fragment key={section.label}>
+                    <SectionHeader>{section.label}</SectionHeader>
+                    {PALETTE_ITEMS.filter(i => section.types.includes(i.type)).map(i => (
+                        <PaletteItem key={i.type} item={i} onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={isMobile} />
+                    ))}
+                </React.Fragment>
+            ))}
+
+            <SectionHeader>Examples</SectionHeader>
+            {EXAMPLE_PROJECTS.map((ex) => (
+                <button
+                    key={ex.name}
+                    onClick={() => {
+                        useStore.setState({ nodes: ex.nodes as any, edges: ex.edges as any });
+                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 border border-blue-900/50 rounded-md bg-blue-950/30 hover:bg-blue-900/50 hover:border-blue-500 cursor-pointer transition-all text-left w-full group"
+                >
+                    <FileDown size={16} className="text-blue-400 shrink-0 group-hover:text-blue-300" />
+                    <div>
+                        <div className="text-sm font-medium text-blue-200 group-hover:text-blue-100">{ex.name}</div>
+                        <div className="text-[10px] text-blue-400/80">{ex.description}</div>
+                    </div>
+                </button>
+            ))}
+
+            {!isMobile && (
+                <div className="mt-4 text-xs text-slate-400 text-center italic">Drag items to canvas</div>
+            )}
+            {isMobile && (
+                <div className="mt-4 text-xs text-slate-400 text-center italic">Tap item to add to canvas</div>
+            )}
+        </div>
+    );
+}
+
 export function Palette() {
+    const isMobile = useIsMobile();
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const { addNode } = useStore();
+
     const onDragStart = (event: React.DragEvent, nodeType: ComponentType) => {
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     };
 
+    const onTapAdd = (nodeType: ComponentType) => {
+        const state = useStore.getState();
+        const nodes = state.nodes;
+        let maxId = 0;
+        for (const node of nodes) {
+            const num = parseInt(node.id, 10);
+            if (!isNaN(num) && num > maxId) maxId = num;
+        }
+        const id = String(maxId + 1);
+
+        const position = { x: 200 + Math.random() * 100, y: 200 + Math.random() * 100 };
+
+        addNode({
+            id,
+            type: nodeType,
+            position,
+            data: { id, type: nodeType, label: nodeType, state: {}, params: {} },
+        } as any);
+
+        setDrawerOpen(false);
+    };
+
+    if (!isMobile) {
+        return (
+            <div className="w-64 border-r border-white/10 bg-slate-900/60 backdrop-blur-md flex flex-col h-full select-none shadow-xl">
+                <div className="p-4 border-b border-white/10 font-semibold flex items-center gap-2 text-slate-100">
+                    <Zap size={18} className="text-blue-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+                    Components
+                </div>
+                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={false} />
+            </div>
+        );
+    }
+
     return (
-        <div className="w-64 border-r border-white/10 bg-slate-900/60 backdrop-blur-md flex flex-col h-full select-none shadow-xl">
-            <div className="p-4 border-b border-white/10 font-semibold flex items-center gap-2 text-slate-100">
-                <Zap size={18} className="text-blue-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
-                Components
-            </div>
-            <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-1.5">
-                {/* Power */}
-                <SectionHeader>Power</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['battery', 'ground'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
+        <>
+            {/* FAB button to open palette on mobile */}
+            <button
+                onClick={() => setDrawerOpen(true)}
+                className="fixed bottom-6 left-4 z-50 w-14 h-14 rounded-full bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] flex items-center justify-center text-white border border-blue-400/50 active:scale-95 transition-transform"
+                aria-label="Open Components"
+            >
+                <Plus size={26} />
+            </button>
 
-                {/* Protection */}
-                <SectionHeader>Protection</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['fuse', 'diode', 'breaker_manual', 'breaker_auto', 'fusible_link', 'tvs_clamp'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
+            {/* Backdrop */}
+            {drawerOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setDrawerOpen(false)}
+                />
+            )}
 
-                {/* Switching */}
-                <SectionHeader>Switching</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['switch_spst', 'switch_momentary_no', 'switch_momentary_nc', 'switch_spdt', 'switch_dpdt', 'switch_ignition', 'switch_master', 'relay_spdt', 'relay_spst', 'relay_dual87', 'relay_latching', 'relay_delay_on', 'relay_delay_off', 'flasher'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Loads / Outputs */}
-                <SectionHeader>Loads / Outputs</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['lamp', 'led', 'resistor', 'motor', 'buzzer', 'solenoid', 'heater', 'compressor_clutch', 'wiper_motor'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Passives / ECU */}
-                <SectionHeader>Passives / ECU</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['capacitor', 'inductor', 'zener', 'potentiometer', 'ecu'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Sensors */}
-                <SectionHeader>Sensors</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['maf_sensor', 'temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'wss_sensor', 'rpm_sensor'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Gauges */}
-                <SectionHeader>Gauges</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['speedo_gauge', 'tacho_gauge', 'fuel_gauge'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Networking */}
-                <SectionHeader>Networking / Advanced ECU</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['can_bus', 'can_transceiver', 'can_terminator', 'ecu_advanced'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Annotation */}
-                <SectionHeader>Annotation / Export</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['schematic_frame'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Wiring */}
-                <SectionHeader>Wiring / Harness</SectionHeader>
-                {PALETTE_ITEMS.filter(i => ['splice', 'cable_resistance', 'connector', 'net_label', 'harness_entry', 'harness_exit'].includes(i.type)).map(i => (
-                    <PaletteItem key={i.type} item={i} onDragStart={onDragStart} />
-                ))}
-
-                {/* Examples */}
-                <SectionHeader>Examples</SectionHeader>
-                {EXAMPLE_PROJECTS.map((ex) => (
+            {/* Bottom sheet drawer */}
+            <div
+                className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-white/10 rounded-t-2xl shadow-2xl flex flex-col select-none transition-transform duration-300 ease-out ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}
+                style={{ maxHeight: '75vh' }}
+            >
+                <div className="p-4 border-b border-white/10 font-semibold flex items-center justify-between text-slate-100 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <Zap size={18} className="text-blue-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
+                        Add Component
+                    </div>
                     <button
-                        key={ex.name}
-                        onClick={() => {
-                            useStore.setState({ nodes: ex.nodes as any, edges: ex.edges as any });
-                        }}
-                        className="flex items-center gap-3 px-3 py-2.5 border border-blue-900/50 rounded-md bg-blue-950/30 hover:bg-blue-900/50 hover:border-blue-500 cursor-pointer transition-all text-left w-full group"
+                        onClick={() => setDrawerOpen(false)}
+                        className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
                     >
-                        <FileDown size={16} className="text-blue-400 shrink-0 group-hover:text-blue-300" />
-                        <div>
-                            <div className="text-sm font-medium text-blue-200 group-hover:text-blue-100">{ex.name}</div>
-                            <div className="text-[10px] text-blue-400/80">{ex.description}</div>
-                        </div>
+                        <X size={16} />
                     </button>
-                ))}
-
-                <div className="mt-4 text-xs text-slate-400 text-center italic">Drag items to canvas</div>
+                </div>
+                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={true} />
             </div>
-        </div>
+        </>
     );
 }
 
@@ -170,12 +222,18 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
     return <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-3 mb-1">{children}</div>;
 }
 
-function PaletteItem({ item, onDragStart }: { item: PaletteItemProps; onDragStart: (e: React.DragEvent, type: ComponentType) => void }) {
+function PaletteItem({ item, onDragStart, onTapAdd, isMobile }: {
+    item: PaletteItemProps;
+    onDragStart: (e: React.DragEvent, type: ComponentType) => void;
+    onTapAdd: (type: ComponentType) => void;
+    isMobile: boolean;
+}) {
     return (
         <div
-            className="flex items-center gap-3 px-3 py-2.5 border border-slate-800 rounded-md bg-slate-800/50 hover:bg-slate-700/80 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(56,189,248,0.15)] cursor-grab active:cursor-grabbing transition-all"
-            onDragStart={(event) => onDragStart(event, item.type)}
-            draggable
+            className="flex items-center gap-3 px-3 py-2.5 border border-slate-800 rounded-md bg-slate-800/50 hover:bg-slate-700/80 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(56,189,248,0.15)] active:bg-slate-700 cursor-grab active:cursor-grabbing transition-all"
+            onDragStart={isMobile ? undefined : (event) => onDragStart(event, item.type)}
+            draggable={!isMobile}
+            onClick={isMobile ? () => onTapAdd(item.type) : undefined}
         >
             <div className="text-slate-300">{item.icon}</div>
             <span className="text-sm font-medium text-slate-200">{item.label}</span>

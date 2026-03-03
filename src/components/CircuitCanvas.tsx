@@ -56,6 +56,8 @@ import { TempSensorNode } from './nodes/TempSensorNode';
 import { OilPressureSensorNode } from './nodes/OilPressureSensorNode';
 import { AirPressureSensorNode } from './nodes/AirPressureSensorNode';
 import { MAFSensorNode } from './nodes/MAFSensorNode';
+import { TPSSensorNode } from './nodes/TPSSensorNode';
+import { IgnitionCoilNode } from './nodes/IgnitionCoilNode';
 import { WheelSpeedSensorNode } from './nodes/WheelSpeedSensorNode';
 import { RPMSensorNode } from './nodes/RPMSensorNode';
 import { SpeedoGaugeNode } from './nodes/SpeedoGaugeNode';
@@ -117,6 +119,8 @@ const nodeTypes: Record<string, any> = {
     oil_press_sensor: OilPressureSensorNode,
     air_press_sensor: AirPressureSensorNode,
     maf_sensor: MAFSensorNode,
+    tps_sensor: TPSSensorNode,
+    ignition_coil: IgnitionCoilNode,
     wss_sensor: WheelSpeedSensorNode,
     rpm_sensor: RPMSensorNode,
     speedo_gauge: SpeedoGaugeNode,
@@ -244,6 +248,10 @@ function makeDefaultData(type: string, id: string): Record<string, any> {
             return { id, type, label: `AIR${id}`, state: { pressure: 101.3 }, params: {} };
         case 'maf_sensor':
             return { id, type, label: `MAF${id}`, state: { flow: 5 }, params: {} };
+        case 'tps_sensor':
+            return { id, type, label: `TPS${id}`, state: { position: 0 }, params: { vMin: 0.5, vMax: 4.5 } };
+        case 'ignition_coil':
+            return { id, type, label: `IGN${id}`, state: { activated: false }, params: { resistance: 1.2 } };
         case 'wss_sensor':
             return { id, type, label: `WSS${id}`, state: { speed: 0 }, params: {} };
         case 'speedo_gauge':
@@ -444,6 +452,12 @@ export function CircuitCanvas() {
                 deleteKeyCode={['Backspace', 'Delete']}
                 connectionMode={ConnectionMode.Loose}
                 proOptions={{ hideAttribution: true }}
+                panOnDrag={[0, 1, 2]}
+                zoomOnPinch
+                panOnScroll={false}
+                zoomOnScroll
+                minZoom={0.1}
+                maxZoom={4}
             >
                 <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
                 <Controls className="!bg-slate-800 !border-slate-700 !rounded-lg !shadow-lg [&>button]:!bg-slate-800 [&>button]:!border-slate-700 [&>button]:!text-slate-300 [&>button:hover]:!bg-slate-700" />

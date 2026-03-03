@@ -58,7 +58,9 @@ export type ComponentType =
     | 'can_transceiver'
     | 'can_terminator'
     | 'ecu_advanced'
-    | 'schematic_frame';
+    | 'schematic_frame'
+    | 'tps_sensor'
+    | 'ignition_coil';
 
 // Terminal definitions by component type
 export type TerminalId = string;
