@@ -13,7 +13,7 @@
  *  6. Iterate until stable or max iterations reached.
  */
 
-import { multiply, inv, Matrix, matrix } from 'mathjs';
+import { lusolve, matrix } from 'mathjs';
 import type { CircuitNode, CircuitEdge, AnyComponentData } from '../types/circuit';
 
 // ----- Solver output types -----
@@ -1358,10 +1358,9 @@ function solveMNA(
     // Solve Ax = z using mathjs
     try {
         const matA = matrix(A);
-        const matZ = matrix(z);
-        const matAinv = inv(matA);
-        const result = multiply(matAinv, matZ) as Matrix;
-        const x = result.toArray() as number[];
+        const matZ = matrix(z.map(v => [v]));
+        const result = lusolve(matA, matZ);
+        const x = (result.toArray() as number[][]).map(row => row[0]);
 
         const voltages: Record<string, number> = {};
         for (let i = 0; i < N; i++) {
@@ -1400,49 +1399,37 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
     const netMap = buildNets(nodes, edges);
 
-    // ---- Net Label Merging ----
-    // Group net_label nodes by their label name, then merge their nets.
-    // First, merge each net label's 'in' and 'out' to the same net (bidirectional).
+    // ---- Net Label & Harness Merging (optimised single-pass) ----
+    // Build a rename map (oldNet → canonicalNet) using Union-Find, then apply once.
+    const mergeUF: Record<string, string> = {};
+    const mFind = (x: string): string => {
+        if (!mergeUF[x]) mergeUF[x] = x;
+        if (mergeUF[x] !== x) mergeUF[x] = mFind(mergeUF[x]);
+        return mergeUF[x];
+    };
+    const mUnion = (a: string, b: string) => {
+        const ra = mFind(a), rb = mFind(b);
+        if (ra !== rb) mergeUF[rb] = ra;
+    };
+
+    // Net label: merge each label's in/out, then merge same-named labels
+    const labelGroups: Record<string, string> = {};
     for (const node of nodes) {
         const d = node.data as any;
         if (d.type === 'net_label') {
             const inNet = netMap[`${node.id}:in`];
             const outNet = netMap[`${node.id}:out`];
-            if (inNet && outNet && inNet !== outNet) {
-                for (const key of Object.keys(netMap)) {
-                    if (netMap[key] === outNet) netMap[key] = inNet;
-                }
-            }
-        }
-    }
-    // Then merge same-named labels
-    const labelGroups: Record<string, string[]> = {};
-    for (const node of nodes) {
-        const d = node.data as any;
-        if (d.type === 'net_label') {
+            if (inNet && outNet) mUnion(inNet, outNet);
             const name = d.label || 'NET';
-            if (!labelGroups[name]) labelGroups[name] = [];
-            const net = netMap[`${node.id}:in`];
-            if (net) labelGroups[name].push(net);
-        }
-    }
-    // For each group with 2+ nets, merge them by pointing all to the first
-    for (const nets of Object.values(labelGroups)) {
-        if (nets.length < 2) continue;
-        const canonical = nets[0];
-        for (let i = 1; i < nets.length; i++) {
-            const old = nets[i];
-            // Replace all occurrences of old net with canonical
-            for (const key of Object.keys(netMap)) {
-                if (netMap[key] === old) {
-                    netMap[key] = canonical;
-                }
+            const net = inNet || outNet;
+            if (net) {
+                if (labelGroups[name]) mUnion(labelGroups[name], net);
+                else labelGroups[name] = net;
             }
         }
     }
 
-    // ---- Harness Entry/Exit Merging ----
-    // For same-named harness_entry + harness_exit, merge pin_N nets
+    // Harness entry/exit: merge matching pin nets
     const harnessGroups: Record<string, { entries: any[]; exits: any[] }> = {};
     for (const node of nodes) {
         const d = node.data as any;
@@ -1462,17 +1449,15 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 for (let i = 1; i <= pinCount; i++) {
                     const entryNet = netMap[`${entry.id}:pin_${i}`];
                     const exitNet = netMap[`${exit.id}:pin_${i}`];
-                    if (entryNet && exitNet && entryNet !== exitNet) {
-                        // Merge exit net into entry net
-                        for (const key of Object.keys(netMap)) {
-                            if (netMap[key] === exitNet) {
-                                netMap[key] = entryNet;
-                            }
-                        }
-                    }
+                    if (entryNet && exitNet) mUnion(entryNet, exitNet);
                 }
             }
         }
+    }
+
+    // Single pass: apply all merges to netMap
+    for (const key of Object.keys(netMap)) {
+        netMap[key] = mFind(netMap[key]);
     }
 
     // Build ground net set

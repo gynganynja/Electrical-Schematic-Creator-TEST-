@@ -2,9 +2,9 @@ import {
     BaseEdge,
     EdgeLabelRenderer,
     getSmoothStepPath,
-    useStore as useReactFlowStore,
 } from '@xyflow/react';
 import type { EdgeProps } from '@xyflow/react';
+import React from 'react';
 
 // Standard automotive wire colors
 const WIRE_COLORS: Record<string, string> = {
@@ -31,11 +31,9 @@ const WIRE_COLORS: Record<string, string> = {
  * - Gauge label display
  * - Smart offset for parallel wires
  */
-export function WireEdge(props: EdgeProps) {
+function WireEdgeInner(props: EdgeProps) {
     const {
         id,
-        source,
-        target,
         sourceX,
         sourceY,
         targetX,
@@ -48,30 +46,10 @@ export function WireEdge(props: EdgeProps) {
         selected,
     } = props;
 
-    // Get all edges to compute a unique offset for edges sharing nodes
-    const edges = useReactFlowStore((s) => s.edges);
-
-    let siblingIndex = 0;
-    let siblingCount = 0;
-    for (const e of edges) {
-        const other = e as any;
-        const sharesSrc = other.source === source;
-        const sharesTgt = other.target === target;
-        const sameRoute = sharesSrc && sharesTgt;
-        const related = sharesSrc || sharesTgt;
-
-        if (related) {
-            siblingCount++;
-            if (other.id === id) {
-                siblingIndex = siblingCount - 1;
-            }
-        }
-        if (sameRoute && other.id !== id) {
-            siblingIndex += 2;
-        }
-    }
-
-    const offset = 20 + siblingIndex * 15;
+    // Deterministic offset from edge ID — avoids subscribing to all edges
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    const offset = 20 + (Math.abs(hash) % 4) * 15;
 
     const [edgePath, labelX, labelY] = getSmoothStepPath({
         sourceX,
@@ -134,4 +112,5 @@ export function WireEdge(props: EdgeProps) {
     );
 }
 
+export const WireEdge = React.memo(WireEdgeInner);
 export { WIRE_COLORS };

@@ -38,28 +38,48 @@ function App() {
     const state = useStore.getState();
     const result = solveCircuit(state.nodes as any, state.edges as any);
 
-    // Apply results back to store
-    if (result.nodeUpdates.length > 0) {
-      for (const update of result.nodeUpdates) {
-        state.updateNodeData(update.id, update.data);
-      }
-    }
+    // Apply results back to store — batch into a single setState
+    const hasNodeUpdates = result.nodeUpdates.length > 0;
+    const hasEdgeUpdates = result.edgeUpdates.length > 0;
 
-    // Apply edge coloring and data (voltage)
-    if (result.edgeUpdates.length > 0) {
-      const newEdges = state.edges.map(e => {
-        const update = result.edgeUpdates.find(u => u.id === e.id);
-        if (update) {
+    if (hasNodeUpdates || hasEdgeUpdates) {
+      const patch: any = {};
+
+      if (hasNodeUpdates) {
+        const updateMap = new Map<string, any>();
+        for (const u of result.nodeUpdates) updateMap.set(u.id, u.data);
+        patch.nodes = state.nodes.map(n => {
+          const u = updateMap.get(n.id);
+          if (!u) return n;
+          const oldData = n.data as any;
+          return {
+            ...n,
+            data: {
+              ...oldData,
+              ...u,
+              state: { ...(oldData.state || {}), ...(u.state || {}) },
+              params: { ...(oldData.params || {}), ...(u.params || {}) },
+            },
+          };
+        });
+      }
+
+      if (hasEdgeUpdates) {
+        const edgeMap = new Map<string, any>();
+        for (const u of result.edgeUpdates) edgeMap.set(u.id, u);
+        patch.edges = state.edges.map(e => {
+          const u = edgeMap.get(e.id);
+          if (!u) return e;
           return {
             ...e,
-            style: update.style,
-            animated: update.animated,
-            data: { ...(e.data || {}), ...(update.data || {}) }
+            style: u.style,
+            animated: u.animated,
+            data: { ...(e.data || {}), ...(u.data || {}) }
           };
-        }
-        return e;
-      });
-      useStore.setState({ edges: newEdges });
+        });
+      }
+
+      useStore.setState(patch);
     }
 
     // Log events
@@ -68,9 +88,17 @@ function App() {
     }
 
     // ---- CAN Registration and ECU Logic Processing ----
-    const advEcus = state.nodes.filter((n: RFNode) => (n.data as any).type === 'ecu_advanced');
-    const canBuses = state.nodes.filter((n: RFNode) => (n.data as any).type === 'can_bus');
-    const transceivers = state.nodes.filter((n: RFNode) => (n.data as any).type === 'can_transceiver');
+    // Collect late updates for ECUs, buses, transceivers — applied in a single batch at end
+    const lateUpdates = new Map<string, any>();
+    const advEcus: RFNode[] = [];
+    const canBuses: RFNode[] = [];
+    const transceivers: RFNode[] = [];
+    for (const n of state.nodes) {
+      const t = (n.data as any).type;
+      if (t === 'ecu_advanced') advEcus.push(n);
+      else if (t === 'can_bus') canBuses.push(n);
+      else if (t === 'can_transceiver') transceivers.push(n);
+    }
 
     // 1a. Unify electrically-connected CAN bus nodes into logical bus groups
     //     using Union-Find on their CAN_H nets so daisy-chained buses share frames.
@@ -195,7 +223,7 @@ function App() {
         JSON.stringify(oldPending, nanToNull) !== JSON.stringify(logicResult.canFrames, nanToNull) ||
         JSON.stringify(d.state?.inputVoltages) !== JSON.stringify(logicInputs)) {
 
-        state.updateNodeData(ecu.id, {
+        lateUpdates.set(ecu.id, {
           state: {
             ...d.state,
             outputs: logicResult.outputs,
@@ -203,7 +231,7 @@ function App() {
             inputVoltages: logicInputs,
             outputVoltages,
           }
-        } as any);
+        });
 
         result.events.push({
           level: 'info',
@@ -275,9 +303,9 @@ function App() {
 
       // Update ALL physical bus nodes in this group with the same state
       for (const gb of groupBuses) {
-        state.updateNodeData(gb.id, {
+        lateUpdates.set(gb.id, {
           state: { ...((gb.data as any).state || {}), isHealthy: busHealthy, lastFrames: deliveredFrames }
-        } as any);
+        });
       }
 
       // Update transceiver transmitting state
@@ -290,10 +318,31 @@ function App() {
       transceivers.forEach(t => {
         const transceiverCanHNet = result.netMap[`${t.id}:can_h`] || '';
         if (groupCanHNets.includes(transceiverCanHNet)) {
-          state.updateNodeData(t.id, {
+          lateUpdates.set(t.id, {
             state: { ...((t.data as any).state || {}), isTransmitting }
-          } as any);
+          });
         }
+      });
+    }
+
+    // Batch-apply all CAN/ECU late updates in a single setState
+    if (lateUpdates.size > 0) {
+      const currentNodes = useStore.getState().nodes;
+      useStore.setState({
+        nodes: currentNodes.map(n => {
+          const u = lateUpdates.get(n.id);
+          if (!u) return n;
+          const oldData = n.data as any;
+          return {
+            ...n,
+            data: {
+              ...oldData,
+              ...u,
+              state: { ...(oldData.state || {}), ...(u.state || {}) },
+              params: { ...(oldData.params || {}), ...(u.params || {}) },
+            },
+          };
+        }),
       });
     }
   }, [addLog]);
