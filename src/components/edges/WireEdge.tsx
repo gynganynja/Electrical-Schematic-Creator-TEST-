@@ -69,6 +69,7 @@ function WireEdgeInner(props: EdgeProps) {
     const gaugeAwg = edgeData?.gaugeAwg || '';
     const gaugeMm2 = edgeData?.gaugeMm2 || '';
     const gaugeLabel = gaugeAwg ? `${gaugeAwg} AWG` : gaugeMm2 ? `${gaugeMm2}mm²` : '';
+    const circuit: string = edgeData?.circuit || '';
 
     return (
         <>
@@ -96,8 +97,10 @@ function WireEdgeInner(props: EdgeProps) {
                         alignItems: 'center',
                     }}
                 >
-                    {gaugeLabel && (
-                        <div className="text-[8px] font-mono px-1 py-0.5 rounded bg-slate-900/80 border border-slate-700/50 text-slate-400">
+                    {(circuit || gaugeLabel) && (
+                        <div className="text-[8px] font-mono px-1 py-0.5 rounded bg-slate-900/80 border border-slate-700/50 text-slate-400 whitespace-nowrap">
+                            {circuit && <span className="text-slate-200">{circuit}</span>}
+                            {circuit && gaugeLabel && ' · '}
                             {gaugeLabel}
                         </div>
                     )}

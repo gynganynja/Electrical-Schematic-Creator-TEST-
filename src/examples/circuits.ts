@@ -2,6 +2,7 @@
  * Example circuits
  */
 import type { CircuitNode, CircuitEdge } from '../types/circuit';
+import { d10t2Hvac } from './d10t2Hvac';
 
 export interface ExampleProject {
     name: string;
@@ -580,4 +581,5 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [
     simpleEcu,
     latchingRelay,
     bcmPcmNetwork,
+    d10t2Hvac,
 ];

@@ -64,6 +64,17 @@ export function Inspector() {
                     </div>
                 </div>
                 <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-4">
+                    {/* Circuit / wire ID, e.g. "124-P35" from an OEM schematic */}
+                    <FieldGroup label="Circuit ID">
+                        <input
+                            type="text"
+                            value={eData.circuit || ''}
+                            placeholder="e.g. 124-P35"
+                            onChange={(e) => updateEdgeData(selectedEdge.id, { circuit: e.target.value })}
+                            className="w-full border border-slate-700 bg-slate-950/50 text-slate-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
+                        />
+                    </FieldGroup>
+
                     {/* Wire Color */}
                     <FieldGroup label="Wire Color">
                         <select

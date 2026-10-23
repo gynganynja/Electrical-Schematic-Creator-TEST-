@@ -213,7 +213,13 @@ function AppInner() {
       const gndNet = result.netMap[`${ecu.id}:gnd`];
       const vccVoltage = (result.nodeVoltages[vccNet] ?? 0) - (result.nodeVoltages[gndNet] ?? 0);
       const isPowered = vccVoltage > 10;
-      if (!isPowered) continue;
+      if (!isPowered) {
+        // An unpowered ECU can't drive anything — release its outputs to high-Z
+        if (Object.keys(d.state?.outputs || {}).length > 0) {
+          lateUpdates.set(ecu.id, { state: { ...d.state, outputs: {}, outputVoltages: {}, pendingCAN: [] } });
+        }
+        continue;
+      }
 
       // --- Custom Logic Execution ---
       const logicRules = Array.isArray(d.params?.rules) ? d.params.rules : [];
