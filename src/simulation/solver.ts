@@ -186,6 +186,95 @@ function getTerminals(type: string, _data?: any): string[] {
     }
 }
 
+// ----- Semiconductor junction model -----
+//
+// Diodes, LEDs, zeners and TVS clamps are modelled piecewise-linearly. Each
+// junction is in one of three modes, chosen iteratively by solveCircuit():
+//   off: open circuit (1 GΩ)
+//   fwd: forward-biased — Vf source in series with rOn (anode → cathode)
+//   rev: reverse breakdown (zener / TVS only) — Vz source in series with rZ
+type JunctionMode = 'off' | 'fwd' | 'rev';
+
+interface JunctionModel {
+    vf: number;          // forward voltage
+    rOn: number;         // forward series resistance
+    vz: number | null;   // reverse breakdown voltage, null = never breaks down
+    rZ: number;          // breakdown series resistance
+}
+
+const JUNCTION_TYPES = new Set(['diode', 'led', 'zener', 'tvs_clamp']);
+
+function junctionModel(d: any): JunctionModel {
+    switch (d.type) {
+        case 'led':
+            return { vf: d.params?.forwardVoltage ?? 2.0, rOn: d.params?.resistance ?? 150, vz: null, rZ: 1 };
+        case 'zener':
+            return { vf: d.params?.forwardDrop ?? 0.7, rOn: 0.05, vz: d.params?.breakdownVoltage ?? 5.1, rZ: 1 };
+        case 'tvs_clamp':
+            return { vf: d.params?.forwardDrop ?? 0.7, rOn: 0.05, vz: d.params?.clampVoltage ?? 36, rZ: 0.5 };
+        default:
+            return { vf: d.params?.forwardDrop ?? 0.7, rOn: 0.05, vz: null, rZ: 1 };
+    }
+}
+
+function pushJunction(components: NetComponent[], id: string, d: any, anode: string, cathode: string) {
+    const m = junctionModel(d);
+    const mode: JunctionMode = d.state?.junction ?? 'off';
+    const mid = id + '_j';
+    if (mode === 'fwd') {
+        components.push({ nodeId: id + '_jv', type: 'vsource', n1: anode, n2: mid, value: m.vf, data: d });
+        components.push({ nodeId: id + '_jr', type: 'resistor', n1: mid, n2: cathode, value: m.rOn, data: d });
+    } else if (mode === 'rev' && m.vz !== null) {
+        components.push({ nodeId: id + '_jv', type: 'vsource', n1: cathode, n2: mid, value: m.vz, data: d });
+        components.push({ nodeId: id + '_jr', type: 'resistor', n1: mid, n2: anode, value: m.rZ, data: d });
+    } else {
+        components.push({ nodeId: id, type: 'resistor', n1: anode, n2: cathode, value: 1e9, data: d });
+    }
+}
+
+/** Next junction mode given the anode-cathode voltage solved with the current mode. */
+function nextJunctionMode(m: JunctionModel, mode: JunctionMode, vd: number): JunctionMode {
+    const EPS = 1e-6;
+    if (mode === 'fwd') return (vd - m.vf) / m.rOn < -EPS ? 'off' : 'fwd';
+    if (mode === 'rev') return m.vz !== null && (-vd - m.vz) / m.rZ >= -EPS ? 'rev' : 'off';
+    if (vd > m.vf + EPS) return 'fwd';
+    if (m.vz !== null && -vd > m.vz + EPS) return 'rev';
+    return 'off';
+}
+
+/** Junction current (A, anode → cathode) for the given mode. */
+function junctionCurrent(m: JunctionModel, mode: JunctionMode, vd: number): number {
+    if (mode === 'fwd') return (vd - m.vf) / m.rOn;
+    if (mode === 'rev' && m.vz !== null) return -(-vd - m.vz) / m.rZ;
+    return vd / 1e9;
+}
+
+// ----- Sensors -----
+
+const SENSOR_TYPES = new Set(['temp_sensor', 'oil_press_sensor', 'air_press_sensor', 'maf_sensor', 'wss_sensor', 'rpm_sensor', 'tps_sensor']);
+/** A sensor needs its reference supply (in → gnd) above this to produce a signal. */
+const SENSOR_MIN_SUPPLY = 4.0;
+
+/** Sensor signal voltage — 0 V when the sensor's supply is missing. */
+function sensorOutput(d: any, v: number): number {
+    return d.state?.powered === false ? 0 : v;
+}
+
+const RELAY_TYPES = new Set(['relay_spdt', 'relay_spst', 'relay_dual87', 'relay_delay_on', 'relay_delay_off']);
+
+/** Shallow state comparison; nested objects (e.g. ECU outputs) compared structurally. */
+function stateDiffers(a: Record<string, any> | undefined, b: Record<string, any> | undefined): boolean {
+    const x = a || {}, y = b || {};
+    const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+    for (const k of keys) {
+        const u = x[k], v = y[k];
+        if (u === v) continue;
+        if (typeof u === 'object' && typeof v === 'object' && u && v && JSON.stringify(u) === JSON.stringify(v)) continue;
+        return true;
+    }
+    return false;
+}
+
 function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Record<string, string>): NetComponent[] {
     const components: NetComponent[] = [];
 
@@ -593,34 +682,11 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- LED: diode + series resistance (polarity-aware) ----
-            case 'led': {
-                const ledFwd = (d as any).state?.forward !== false;
-                components.push({
-                    nodeId: node.id,
-                    type: 'resistor',
-                    n1: net('anode'),
-                    n2: net('cathode'),
-                    value: ledFwd ? (d.params?.resistance ?? 150) : 1e9,
-                    data: d,
-                });
+            // ---- Diode / LED: piecewise-linear junction (see pushJunction) ----
+            case 'led':
+            case 'diode':
+                pushJunction(components, node.id, d, net('anode'), net('cathode'));
                 break;
-            }
-
-            // ---- Diode: polarity-aware iterative model ----
-            // forward=true (default) → 0.01Ω; reverse → 1e9Ω (open)
-            case 'diode': {
-                const diodeFwd = (d as any).state?.forward !== false;
-                components.push({
-                    nodeId: node.id,
-                    type: 'resistor',
-                    n1: net('anode'),
-                    n2: net('cathode'),
-                    value: diodeFwd ? 0.01 : 1e9,
-                    data: d,
-                });
-                break;
-            }
 
             // ---- Wiper Motor (3-pin model: in, out, park) ----
             case 'wiper_motor': {
@@ -710,18 +776,9 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- TVS Clamp: bidirectional, low R when clamping ----
+            // ---- TVS Clamp: bidirectional clamp at clampVoltage ----
             case 'tvs_clamp':
-                // Simplified: always looks like a very high resistance unless voltage exceeds clamp
-                // (Real clamping behavior is handled in state eval)
-                components.push({
-                    nodeId: node.id,
-                    type: 'resistor',
-                    n1: net('anode'),
-                    n2: net('cathode'),
-                    value: 1e6, // Very high R in standby
-                    data: d,
-                });
+                pushJunction(components, node.id, d, net('anode'), net('cathode'));
                 break;
 
             // ---- Cable Resistance: pure resistor ----
@@ -745,7 +802,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 // Power load: in → gnd (keeps supply wire alive)
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
                 // Thevenin output: vsource on internal node ref'd to sensor gnd, 100Ω series to out
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: tpsVout, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, tpsVout), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -787,18 +844,6 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- Wiper Motor: resistive motor + park switch ----
-            case 'wiper_motor':
-                components.push({
-                    nodeId: node.id,
-                    type: 'resistor',
-                    n1: net('in'),
-                    n2: net('out'),
-                    value: d.params?.resistance ?? 6,
-                    data: d,
-                });
-                break;
-
             // ---- Capacitor: open circuit in DC steady-state ----
             case 'capacitor':
                 components.push({
@@ -823,16 +868,9 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 });
                 break;
 
-            // ---- Zener Diode: same as diode for DC ----
+            // ---- Zener Diode: forward drop + reverse breakdown ----
             case 'zener':
-                components.push({
-                    nodeId: node.id,
-                    type: 'resistor',
-                    n1: net('anode'),
-                    n2: net('cathode'),
-                    value: 1e6, // Simplified
-                    data: d,
-                });
+                pushJunction(components, node.id, d, net('anode'), net('cathode'));
                 break;
 
             // ---- Potentiometer: two resistors A-wiper and wiper-B ----
@@ -990,7 +1028,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const ratio = (temp - minT) / (maxT - minT);
                 const vOut = vMin + ratio * (vMax - vMin);
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, Math.max(0, Math.min(vMax, vOut))), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1002,7 +1040,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxP) * (vMax - vMin);
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, Math.max(0, Math.min(vMax, vOut))), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1014,7 +1052,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMax = (d as any).params?.vMax ?? 4.5;
                 const vOut = vMin + (press / maxP) * (vMax - vMin);
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, Math.max(0, Math.min(vMax, vOut))), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1026,7 +1064,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMax = (d as any).params?.vMax ?? 5.0;
                 const vOut = vMin + (flow / maxF) * (vMax - vMin);
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, Math.max(0, Math.min(vMax, vOut))), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1038,7 +1076,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vMax = (d as any).params?.vMax ?? 12;
                 const vOut = vMin + (speed / maxS) * (vMax - vMin);
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: Math.max(0, Math.min(vMax, vOut)), data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, Math.max(0, Math.min(vMax, vOut))), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1051,7 +1089,7 @@ function buildNetlist(nodes: CircuitNode[], _edges: CircuitEdge[], netMap: Recor
                 const vOut = vMin + (rpm / maxR) * (vMax - vMin);
                 const clampedV = Math.max(0, Math.min(vMax, vOut));
                 components.push({ nodeId: node.id + '_pwr', type: 'resistor', n1: net('in'), n2: net('gnd'), value: 10000, data: d });
-                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: clampedV, data: d });
+                components.push({ nodeId: node.id + '_vsrc', type: 'vsource', n1: node.id + '_sig', n2: net('gnd'), value: sensorOutput(d, clampedV), data: d });
                 components.push({ nodeId: node.id + '_rout', type: 'resistor', n1: node.id + '_sig', n2: net('out'), value: 100, data: d });
                 break;
             }
@@ -1427,8 +1465,10 @@ function solveMNA(
 /**
  * Main solver entry point.
  * Runs the iterative MNA loop.
+ *
+ * `now` (ms) drives time-dependent parts: delay relays and auto-reset breakers.
  */
-export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveResult {
+export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[], now: number = Date.now()): SolveResult {
     const events: SimEvent[] = [];
     const nodeUpdates: NodeUpdate[] = [];
     const edgeUpdates: EdgeUpdate[] = [];
@@ -1522,6 +1562,18 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
         nodeStates[node.id] = { ...(node.data as any).state };
     }
 
+    // Auto-reset breakers whose cool-down has elapsed
+    for (const node of nodes) {
+        const d = node.data as any;
+        const st = nodeStates[node.id];
+        if (d.type !== 'breaker_auto' || !st.tripped) continue;
+        const resetDelay = d.params?.resetDelayMs ?? 2000;
+        if (now - (st.trippedAt ?? 0) >= resetDelay) {
+            nodeStates[node.id] = { ...st, tripped: false, trippedAt: undefined };
+            events.push({ level: 'info', message: `Breaker ${d.label} auto-reset` });
+        }
+    }
+
     let voltages: Record<string, number> = {};
     const MAX_ITERATIONS = 20;
 
@@ -1547,21 +1599,38 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
         // Evaluate relays
         for (const node of nodes) {
-            const d = node.data as AnyComponentData;
-            if (d.type === 'relay_spdt' || (d as any).type === 'relay_spst' || (d as any).type === 'relay_dual87'
-                || (d as any).type === 'relay_delay_on' || (d as any).type === 'relay_delay_off') {
+            const d = node.data as any;
+            if (RELAY_TYPES.has(d.type)) {
                 if (frozenNodes.has(node.id)) continue; // Skip oscillating relays
 
                 const vCoilIn = voltages[netMap[`${node.id}:coil_in`]] ?? 0;
                 const vCoilOut = voltages[netMap[`${node.id}:coil_out`]] ?? 0;
                 const coilVoltage = Math.abs(vCoilIn - vCoilOut);
-                const wasEnergized = nodeStates[node.id]?.energized || false;
-                const pullIn = (d as any).params.pullInVoltage ?? 8;
-                const release = (d as any).params.releaseVoltage ?? 3;
+                const st = nodeStates[node.id] || {};
+                const wasEnergized = st.energized || false;
+                const pullIn = d.params?.pullInVoltage ?? 8;
+                const release = d.params?.releaseVoltage ?? 3;
+                const isDelay = d.type === 'relay_delay_on' || d.type === 'relay_delay_off';
 
-                let nowEnergized = wasEnergized;
-                if (!wasEnergized && coilVoltage >= pullIn) nowEnergized = true;
-                if (wasEnergized && coilVoltage < release) nowEnergized = false;
+                // Coil pull-in / drop-out with hysteresis
+                const coilWas = isDelay ? (st.coilOn || false) : wasEnergized;
+                let coilNow = coilWas;
+                if (!coilWas && coilVoltage >= pullIn) coilNow = true;
+                if (coilWas && coilVoltage < release) coilNow = false;
+
+                let nowEnergized = coilNow;
+                if (isDelay) {
+                    if (coilNow !== coilWas) {
+                        nodeStates[node.id] = { ...st, coilOn: coilNow, coilChangedAt: now };
+                        stateChanged = true;
+                    }
+                    const delay = d.params?.delayMs ?? (d.type === 'relay_delay_on' ? 2000 : 5000);
+                    const changedAt = nodeStates[node.id].coilChangedAt;
+                    const elapsed = changedAt === undefined ? Infinity : now - changedAt;
+                    nowEnergized = d.type === 'relay_delay_on'
+                        ? coilNow && elapsed >= delay        // contacts close after coil held for delay
+                        : coilNow || elapsed < delay;        // contacts hold for delay after coil drops
+                }
 
                 if (wasEnergized !== nowEnergized) {
                     // Check for oscillation: if this state was seen before, freeze the relay
@@ -1688,7 +1757,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 const vOut = voltages[netMap[`${node.id}:out`]] ?? 0;
                 const cbCurrent = Math.abs(vIn - vOut) / 0.001;
                 if (cbCurrent > (d as any).params.tripCurrent) {
-                    nodeStates[node.id] = { ...nodeStates[node.id], tripped: true };
+                    nodeStates[node.id] = { ...nodeStates[node.id], tripped: true, trippedAt: now };
                     stateChanged = true;
                     events.push({
                         level: 'error',
@@ -1712,15 +1781,25 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
                 }
             }
 
-            // Diode polarity check — flip forward/reverse state each iteration
-            if ((d as any).type === 'diode' || (d as any).type === 'led') {
-                const vAnode    = voltages[netMap[`${node.id}:anode`]]   ?? 0;
-                const vCathode  = voltages[netMap[`${node.id}:cathode`]] ?? 0;
-                const fwdDrop   = (d as any).type === 'led' ? 1.8 : ((d as any).params?.forwardDrop ?? 0.7);
-                const wasFwd    = nodeStates[node.id]?.forward !== false;
-                const nowFwd    = (vAnode - vCathode) > fwdDrop;
-                if (wasFwd !== nowFwd) {
-                    nodeStates[node.id] = { ...nodeStates[node.id], forward: nowFwd };
+            // Semiconductor junctions: re-select off / forward / breakdown mode
+            if (JUNCTION_TYPES.has((d as any).type)) {
+                const vAnode = voltages[netMap[`${node.id}:anode`]] ?? 0;
+                const vCathode = voltages[netMap[`${node.id}:cathode`]] ?? 0;
+                const mode: JunctionMode = nodeStates[node.id]?.junction ?? 'off';
+                const next = nextJunctionMode(junctionModel(d), mode, vAnode - vCathode);
+                if (next !== mode) {
+                    nodeStates[node.id] = { ...nodeStates[node.id], junction: next };
+                    stateChanged = true;
+                }
+            }
+
+            // Sensors only produce a signal while their reference supply is present
+            if (SENSOR_TYPES.has((d as any).type)) {
+                const supply = (voltages[netMap[`${node.id}:in`]] ?? 0) - (voltages[netMap[`${node.id}:gnd`]] ?? 0);
+                const wasPowered = nodeStates[node.id]?.powered !== false;
+                const nowPowered = supply >= SENSOR_MIN_SUPPLY;
+                if (wasPowered !== nowPowered) {
+                    nodeStates[node.id] = { ...nodeStates[node.id], powered: nowPowered };
                     stateChanged = true;
                 }
             }
@@ -1811,16 +1890,16 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             }
         }
 
-        // Diode / LED — persist forward state so next tick starts correctly
-        if ((d as any).type === 'diode' || (d as any).type === 'led') {
-            const vIn = voltages[netMap[`${node.id}:anode`]] ?? 0;
-            const vOut = voltages[netMap[`${node.id}:cathode`]] ?? 0;
-            const fwd = newState?.forward ?? (vIn > vOut);
-            const isOn = (d as any).type === 'led' ? (vIn - vOut) > 1.8 : undefined;
-            if (fwd !== oldState?.forward || isOn !== oldState?.on) {
-                const updatedState: any = { ...newState, forward: fwd };
-                if (isOn !== undefined) updatedState.on = isOn;
-                nodeUpdates.push({ id: node.id, data: { state: updatedState } as any });
+        // Junctions — persist mode so next tick starts from the converged state
+        if (JUNCTION_TYPES.has((d as any).type)) {
+            const vA = voltages[netMap[`${node.id}:anode`]] ?? 0;
+            const vK = voltages[netMap[`${node.id}:cathode`]] ?? 0;
+            const mode: JunctionMode = newState?.junction ?? 'off';
+            const current = junctionCurrent(junctionModel(d), mode, vA - vK);
+            const updatedState: any = { ...newState, junction: mode, forward: mode === 'fwd', conducting: mode !== 'off' };
+            if ((d as any).type === 'led') updatedState.on = mode === 'fwd' && current > 0.001;
+            if (stateDiffers(updatedState, { ...oldState, current: undefined }) || Math.abs((oldState?.current ?? 0) - current) > 1e-4) {
+                nodeUpdates.push({ id: node.id, data: { state: { ...updatedState, current } } as any });
             }
         }
 
@@ -1901,7 +1980,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
             const vIn = voltages[netMap[`${node.id}:in`]] ?? 0;
             const vGnd = voltages[netMap[`${node.id}:gnd`]] ?? 0;
             const voltage = Math.abs(vIn - vGnd);
-            if (voltage !== oldState?.vcc) {
+            if (voltage !== oldState?.vcc || newState?.powered !== oldState?.powered) {
                 nodeUpdates.push({ id: node.id, data: { state: { ...newState, vcc: voltage } } as any });
             }
         }
@@ -1932,7 +2011,7 @@ export function solveCircuit(nodes: CircuitNode[], edges: CircuitEdge[]): SolveR
 
         // Programmable Node state updates (ECU, Relays, etc.)
         if (['ecu', 'relay_spdt', 'relay_spst', 'relay_dual87', 'relay_latching', 'relay_delay_on', 'relay_delay_off', 'fuse', 'fusible_link', 'breaker_manual', 'breaker_auto'].includes(d.type as string)) {
-            if (newState?.energized !== oldState?.energized || newState?.blown !== oldState?.blown) {
+            if (stateDiffers(newState, oldState)) {
                 nodeUpdates.push({ id: node.id, data: { state: newState } as any });
             }
         }

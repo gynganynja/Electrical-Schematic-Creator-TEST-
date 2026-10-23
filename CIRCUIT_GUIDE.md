@@ -115,7 +115,7 @@ The ground node defines the **0V reference** for the entire circuit. Without at 
 | **State** | `blown` — true when current exceeds rating |
 | **Size** | 80px wide |
 
-Fuses protect downstream circuits from overcurrent. When current exceeds the trip rating, the fuse **blows** (open circuit, shown in red). Blown fuses do not auto-reset — you must reset the simulation.
+Fuses protect downstream circuits from overcurrent. When current exceeds the trip rating, the fuse **blows** (open circuit, shown in red). Blown fuses do not auto-reset — click **REPLACE FUSE** in the Inspector, or press **Reset** to restore every fuse.
 
 **How to use:**
 1. Place between the power source and the load
@@ -155,11 +155,11 @@ Trips like a fuse when overcurrent occurs. Shows a **RESET** button when tripped
 |----------|---------|
 | **Type** | `breaker_auto` |
 | **Handles** | `in` (left, amber), `out` (right, amber) |
-| **Parameters** | `tripCurrent` — default 20A |
+| **Parameters** | `tripCurrent` — default 20A; `resetDelayMs` — cool-down before auto-reset (default 2000 ms) |
 | **State** | `tripped` |
 | **Size** | 96px wide |
 
-Trips on overcurrent and automatically resets after a delay. No manual intervention needed.
+Trips on overcurrent and automatically resets after `resetDelayMs`. If the fault is still present it trips again, so a persistent short cycles the breaker — just like the real part.
 
 ---
 
@@ -365,8 +365,10 @@ Air conditioning compressor electromagnetic clutch.
 
 Allows current flow **anode → cathode only**. Blocks reverse current.
 
-- **Forward biased** (anode more positive): Very low resistance (0.01 ohm)
-- **Reverse biased**: Very high resistance (1 gigaohm)
+- **Forward biased** (anode more positive by more than `forwardDrop`, default 0.7V): conducts with a 0.7V drop (plus 0.05 ohm)
+- **Reverse biased**: open circuit (1 gigaohm)
+
+The Inspector shows whether the diode is FORWARD or BLOCKING and the current through it.
 
 **Polarity matters!** The triangle points from anode to cathode. Current flows in the direction the triangle points.
 
@@ -378,11 +380,11 @@ Allows current flow **anode → cathode only**. Blocks reverse current.
 |----------|---------|
 | **Type** | `led` |
 | **Handles** | `anode` (left, red), `cathode` (right, gray) |
-| **Parameters** | `color` — LED color (default red) |
+| **Parameters** | `color` — LED color (default red); `forwardVoltage` — default 2.0V; `resistance` — internal series resistance (default 150 ohm) |
 | **State** | `on` |
 | **Size** | 60×60px |
 
-Light-emitting diode. Same polarity rules as a diode. Glows with the configured color when forward biased.
+Light-emitting diode. Same polarity rules as a diode, with a 2.0V forward drop. Glows with the configured color when forward biased and passing more than 1 mA.
 
 **Important:** Always use a current-limiting resistor in series with an LED (typically 470–1000 ohm for 12V systems).
 
@@ -395,7 +397,7 @@ Light-emitting diode. Same polarity rules as a diode. Glows with the configured 
 | **Parameters** | `breakdownVoltage` — default 5.1V |
 | **Size** | 65×50px |
 
-Conducts in reverse when voltage exceeds breakdown voltage. Used for voltage regulation and clamping.
+Conducts forward like a normal diode (0.7V), and in reverse once the voltage exceeds the breakdown voltage — holding the cathode at `breakdownVoltage` above the anode. Used for voltage regulation and clamping.
 
 **How to use:** Place cathode toward the higher-voltage side. The zener clamps at its breakdown voltage.
 
@@ -408,7 +410,7 @@ Conducts in reverse when voltage exceeds breakdown voltage. Used for voltage reg
 | **Parameters** | `clampVoltage` — default 36V |
 | **Size** | 65×55px |
 
-Transient Voltage Suppressor. Clamps voltage spikes above the threshold. Protects against load dump and inductive kickback.
+Transient Voltage Suppressor (unidirectional). Conducts in reverse once the cathode is more than `clampVoltage` above the anode, clamping the line; conducts forward at 0.7V like a diode. Protects against load dump and inductive kickback. The Inspector shows CLAMPING while it conducts in reverse.
 
 ---
 
@@ -549,7 +551,7 @@ Has two separate coils — SET and RESET. A pulse on the SET coil latches the re
 | **Parameters** | `delayMs` — delay in milliseconds (default 2000) |
 | **Size** | 120×164px |
 
-Standard SPDT relay with a time delay before energizing. When coil power is applied, the relay waits `delayMs` before switching contacts.
+Standard SPDT relay with a time delay before energizing. When coil power is applied, the relay waits `delayMs` before switching contacts. If coil power drops before the delay expires, the contacts never switch.
 
 ### Delay-Off Relay
 
@@ -566,7 +568,9 @@ Standard SPDT relay that stays energized for `delayMs` after coil power is remov
 
 ## 9. Sensors
 
-Sensors are interactive components with sliders. They output a voltage proportional to the measured value. All 2-pin sensors have `in` (left, power) and `out` (right, signal output).
+Sensors are interactive components with sliders. They output a voltage proportional to the measured value. All sensors are **3-wire**: `in` (reference supply, usually the ECU's 5V ref), `gnd` (sensor ground) and `out` (signal).
+
+**A sensor needs its supply:** if `in` is less than 4V above `gnd`, the sensor outputs 0V — exactly like a real sensor with a broken reference wire. Wire `in` to a 5V reference (or 12V for wheel-speed sensors) and `gnd` to ground.
 
 ### Temperature Sensor
 
@@ -1008,7 +1012,7 @@ Animated wiper motor with park switch. The motor spins when powered and the wipe
 
 ### Running the Simulation
 
-- **Reset** — Clears all state (blown fuses, relay positions, etc.) and resets to initial conditions
+- **Reset** — Clears all simulation state (blown fuses, tripped breakers, relay positions, wire colours) while keeping your switch positions and sensor readings
 - **Run** — Starts the continuous simulation loop. The solver runs repeatedly, updating voltages and component states
 - **Pause** — Halts the simulation loop while preserving current state
 
@@ -1020,7 +1024,7 @@ Animated wiper motor with park switch. The motor spins when powered and the wipe
 4. ECU logic rules are evaluated based on input voltages
 5. ECU outputs are applied
 6. Wire colors update to show voltage levels
-7. The loop repeats (~60Hz)
+7. The loop repeats every 200 ms (5 Hz). Time-based parts (delay relays, auto-reset breakers, ECU timers) use real elapsed time
 
 ### Interactive Controls During Simulation
 

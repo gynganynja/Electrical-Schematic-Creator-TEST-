@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useReactFlow } from '@xyflow/react';
 import type { ComponentType } from '../types/circuit';
-import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag, Thermometer, Droplets, Wind, Network, RotateCw, LayoutTemplate, Plus, X } from 'lucide-react';
+import { BatteryMedium, Lightbulb, ToggleLeft, Activity, Zap, ShieldAlert, GitBranch, FileDown, Circle, Disc, ArrowRightCircle, Timer, Volume2, Magnet, LampDesk, Power, Key, ArrowLeftRight, Maximize2, ShieldCheck, RefreshCw, Cable, Flame, Snowflake, Gauge, Cpu, Plug, Tag, Thermometer, Droplets, Wind, Network, RotateCw, LayoutTemplate, Plus, X, Search } from 'lucide-react';
 import { EXAMPLE_PROJECTS } from '../examples/circuits';
 import useStore from '../store/useStore';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { makeNode } from '../utils/componentDefaults';
 
 interface PaletteItemProps {
     type: ComponentType;
@@ -89,46 +91,71 @@ const SECTIONS: { label: string; types: string[] }[] = [
 function PaletteContent({
     onDragStart,
     onTapAdd,
+    onLoadExample,
     isMobile,
 }: {
     onDragStart: (e: React.DragEvent, type: ComponentType) => void;
     onTapAdd: (type: ComponentType) => void;
+    onLoadExample: (index: number) => void;
     isMobile: boolean;
 }) {
+    const [query, setQuery] = useState('');
+    const q = query.trim().toLowerCase();
+    const matches = (item: PaletteItemProps) => !q || item.label.toLowerCase().includes(q) || item.type.replace(/_/g, ' ').includes(q);
+    const examples = EXAMPLE_PROJECTS.map((ex, index) => ({ ex, index }))
+        .filter(({ ex }) => !q || ex.name.toLowerCase().includes(q) || ex.description.toLowerCase().includes(q));
+    const sections = SECTIONS
+        .map(section => ({ label: section.label, items: PALETTE_ITEMS.filter(i => section.types.includes(i.type) && matches(i)) }))
+        .filter(section => section.items.length > 0);
+    const anyMatch = sections.length > 0 || examples.length > 0;
+
     return (
-        <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-1.5">
-            {SECTIONS.map(section => (
-                <React.Fragment key={section.label}>
-                    <SectionHeader>{section.label}</SectionHeader>
-                    {PALETTE_ITEMS.filter(i => section.types.includes(i.type)).map(i => (
-                        <PaletteItem key={i.type} item={i} onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={isMobile} />
-                    ))}
-                </React.Fragment>
-            ))}
+        <div className="flex-1 flex flex-col min-h-0">
+            <div className="px-3 pt-3 pb-1 shrink-0">
+                <div className="relative">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    <input
+                        type="search"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Search components…"
+                        aria-label="Search components"
+                        className="w-full pl-8 pr-2 py-1.5 text-sm rounded-md border border-slate-700 bg-slate-950/50 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                    />
+                </div>
+            </div>
+            <div className="p-3 pt-1 flex-1 overflow-y-auto flex flex-col gap-1.5">
+                {sections.map(section => (
+                    <React.Fragment key={section.label}>
+                        <SectionHeader>{section.label}</SectionHeader>
+                        {section.items.map(i => (
+                            <PaletteItem key={i.type} item={i} onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={isMobile} />
+                        ))}
+                    </React.Fragment>
+                ))}
 
-            <SectionHeader>Examples</SectionHeader>
-            {EXAMPLE_PROJECTS.map((ex) => (
-                <button
-                    key={ex.name}
-                    onClick={() => {
-                        useStore.setState({ nodes: ex.nodes as any, edges: ex.edges as any });
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 border border-blue-900/50 rounded-md bg-blue-950/30 hover:bg-blue-900/50 hover:border-blue-500 cursor-pointer transition-all text-left w-full group"
-                >
-                    <FileDown size={16} className="text-blue-400 shrink-0 group-hover:text-blue-300" />
-                    <div>
-                        <div className="text-sm font-medium text-blue-200 group-hover:text-blue-100">{ex.name}</div>
-                        <div className="text-[10px] text-blue-400/80">{ex.description}</div>
-                    </div>
-                </button>
-            ))}
+                {examples.length > 0 && <SectionHeader>Examples</SectionHeader>}
+                {examples.map(({ ex, index }) => (
+                    <button
+                        key={ex.name}
+                        onClick={() => onLoadExample(index)}
+                        className="flex items-center gap-3 px-3 py-2.5 border border-blue-900/50 rounded-md bg-blue-950/30 hover:bg-blue-900/50 hover:border-blue-500 cursor-pointer transition-all text-left w-full group"
+                    >
+                        <FileDown size={16} className="text-blue-400 shrink-0 group-hover:text-blue-300" />
+                        <div>
+                            <div className="text-sm font-medium text-blue-200 group-hover:text-blue-100">{ex.name}</div>
+                            <div className="text-[10px] text-blue-400/80">{ex.description}</div>
+                        </div>
+                    </button>
+                ))}
 
-            {!isMobile && (
-                <div className="mt-4 text-xs text-slate-400 text-center italic">Drag items to canvas</div>
-            )}
-            {isMobile && (
-                <div className="mt-4 text-xs text-slate-400 text-center italic">Tap item to add to canvas</div>
-            )}
+                {!anyMatch && (
+                    <div className="mt-4 text-xs text-slate-500 text-center">No components match “{query}”</div>
+                )}
+                <div className="mt-4 text-xs text-slate-400 text-center italic">
+                    {isMobile ? 'Tap an item to add it' : 'Drag onto the canvas, or click to add'}
+                </div>
+            </div>
         </div>
     );
 }
@@ -136,33 +163,33 @@ function PaletteContent({
 export function Palette() {
     const isMobile = useIsMobile();
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const { addNode } = useStore();
+    const { addNode, loadProject } = useStore();
+    const { screenToFlowPosition, fitView } = useReactFlow();
 
     const onDragStart = (event: React.DragEvent, nodeType: ComponentType) => {
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     };
 
+    /** Add a component at the centre of the visible canvas */
     const onTapAdd = (nodeType: ComponentType) => {
-        const state = useStore.getState();
-        const nodes = state.nodes;
-        let maxId = 0;
-        for (const node of nodes) {
-            const num = parseInt(node.id, 10);
-            if (!isNaN(num) && num > maxId) maxId = num;
-        }
-        const id = String(maxId + 1);
-
-        const position = { x: 200 + Math.random() * 100, y: 200 + Math.random() * 100 };
-
-        addNode({
-            id,
-            type: nodeType,
-            position,
-            data: { id, type: nodeType, label: nodeType, state: {}, params: {} },
-        } as any);
-
+        const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+        const center = pane
+            ? screenToFlowPosition({ x: pane.left + pane.width / 2, y: pane.top + pane.height / 2 })
+            : { x: 200, y: 200 };
+        // Nudge so repeated clicks don't stack exactly on top of each other
+        const jitter = (useStore.getState().nodes.length % 5) * 20;
+        addNode(makeNode(nodeType, { x: center.x - 40 + jitter, y: center.y - 30 + jitter }));
         setDrawerOpen(false);
+    };
+
+    const onLoadExample = (index: number) => {
+        const ex = EXAMPLE_PROJECTS[index];
+        if (useStore.getState().nodes.length > 0 &&
+            !window.confirm(`Replace the current circuit with "${ex.name}"? (You can undo this.)`)) return;
+        loadProject(structuredClone(ex.nodes) as any, structuredClone(ex.edges) as any);
+        setDrawerOpen(false);
+        setTimeout(() => fitView({ padding: 0.15, duration: 300, maxZoom: 1.2 }), 50);
     };
 
     if (!isMobile) {
@@ -172,7 +199,7 @@ export function Palette() {
                     <Zap size={18} className="text-blue-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
                     Components
                 </div>
-                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={false} />
+                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} onLoadExample={onLoadExample} isMobile={false} />
             </div>
         );
     }
@@ -208,12 +235,13 @@ export function Palette() {
                     </div>
                     <button
                         onClick={() => setDrawerOpen(false)}
+                        aria-label="Close"
                         className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
                     >
                         <X size={16} />
                     </button>
                 </div>
-                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} isMobile={true} />
+                <PaletteContent onDragStart={onDragStart} onTapAdd={onTapAdd} onLoadExample={onLoadExample} isMobile={true} />
             </div>
         </>
     );
@@ -234,7 +262,8 @@ function PaletteItem({ item, onDragStart, onTapAdd, isMobile }: {
             className="flex items-center gap-3 px-3 py-2.5 border border-slate-800 rounded-md bg-slate-800/50 hover:bg-slate-700/80 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(56,189,248,0.15)] active:bg-slate-700 cursor-grab active:cursor-grabbing transition-all"
             onDragStart={isMobile ? undefined : (event) => onDragStart(event, item.type)}
             draggable={!isMobile}
-            onClick={isMobile ? () => onTapAdd(item.type) : undefined}
+            onClick={() => onTapAdd(item.type)}
+            title={isMobile ? undefined : `Drag onto the canvas, or click to add ${item.label}`}
         >
             <div className="text-slate-300">{item.icon}</div>
             <span className="text-sm font-medium text-slate-200">{item.label}</span>

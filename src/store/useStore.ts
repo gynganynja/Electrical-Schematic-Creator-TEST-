@@ -30,6 +30,12 @@ interface CircuitState {
     clearAll: () => void;
     undo: () => void;
     redo: () => void;
+    /** Replace the whole circuit (load file / example). Undoable. */
+    loadProject: (nodes: Node[], edges: Edge[]) => void;
+    /** Copy the selected nodes (and wires between them) to the internal clipboard */
+    copySelection: () => number;
+    /** Paste the clipboard, offset from the originals, and select the pasted nodes */
+    paste: () => number;
     /** ID of the ECU currently being edited in the Rules Editor */
     editingECUId: string | null;
     setEditingECU: (id: string | null) => void;
@@ -38,6 +44,24 @@ interface CircuitState {
 }
 
 const MAX_HISTORY = 50;
+
+/** Deep-clone node/edge data so later mutations can't leak into history */
+function snapshot(nodes: Node[], edges: Edge[]): Snapshot {
+    return {
+        nodes: nodes.map(n => ({ ...n, data: structuredClone(n.data) })),
+        edges: edges.map(e => ({ ...e, data: structuredClone(e.data || {}) })),
+    };
+}
+
+/** History stack with the current circuit appended (bounded) */
+function withSnapshot(past: Snapshot[], nodes: Node[], edges: Edge[]): Snapshot[] {
+    const next = [...past, snapshot(nodes, edges)];
+    if (next.length > MAX_HISTORY) next.shift();
+    return next;
+}
+
+let clipboard: Snapshot | null = null;
+let pasteCount = 0;
 
 const useStore = create<CircuitState>((set, get) => ({
     nodes: [],
@@ -52,53 +76,99 @@ const useStore = create<CircuitState>((set, get) => ({
 
     pushHistory: () => {
         const { nodes, edges, past } = get();
-        // Safe deep clone for history snapshots
-        const snapshot = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-        const newPast = [...past, snapshot];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
-        set({ past: newPast, future: [] });
+        set({ past: withSnapshot(past, nodes, edges), future: [] });
     },
 
     undo: () => {
-        const { past, nodes, edges } = get();
+        const { past, future, nodes, edges } = get();
         if (past.length === 0) return;
         const prev = past[past.length - 1];
-        const newPast = past.slice(0, -1);
-
-        // Save current for future
-        const current = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-
         set({
             nodes: prev.nodes,
             edges: prev.edges,
-            past: newPast,
-            future: [current, ...get().future],
+            past: past.slice(0, -1),
+            future: [snapshot(nodes, edges), ...future],
         });
     },
 
     redo: () => {
-        const { future, nodes, edges } = get();
+        const { past, future, nodes, edges } = get();
         if (future.length === 0) return;
         const next = future[0];
-        const newFuture = future.slice(1);
-
-        const current = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-
         set({
             nodes: next.nodes,
             edges: next.edges,
-            future: newFuture,
-            past: [...get().past, current],
+            future: future.slice(1),
+            past: [...past, snapshot(nodes, edges)],
         });
+    },
+
+    loadProject: (nodes, edges) => {
+        const state = get();
+        set({
+            nodes,
+            edges,
+            past: withSnapshot(state.past, state.nodes, state.edges),
+            future: [],
+            lastSelectedNodeId: null,
+            lastSelectedEdgeId: null,
+            editingECUId: null,
+        });
+    },
+
+    copySelection: () => {
+        const { nodes, edges } = get();
+        const selected = nodes.filter(n => n.selected);
+        if (selected.length === 0) return 0;
+        const ids = new Set(selected.map(n => n.id));
+        clipboard = snapshot(selected, edges.filter(e => ids.has(e.source) && ids.has(e.target)));
+        pasteCount = 0;
+        return selected.length;
+    },
+
+    paste: () => {
+        if (!clipboard || clipboard.nodes.length === 0) return 0;
+        const { nodes, edges, past } = get();
+        pasteCount++;
+        const offset = 40 * pasteCount;
+
+        // Allocate fresh numeric IDs above the current maximum
+        let maxId = 0;
+        for (const n of nodes) {
+            const num = parseInt(n.id, 10);
+            if (!isNaN(num) && num > maxId) maxId = num;
+        }
+        const idMap = new Map<string, string>();
+        for (const n of clipboard.nodes) idMap.set(n.id, String(++maxId));
+
+        const newNodes: Node[] = clipboard.nodes.map(n => {
+            const id = idMap.get(n.id)!;
+            const data = structuredClone(n.data) as Record<string, any>;
+            return {
+                ...n,
+                id,
+                selected: true,
+                position: { x: n.position.x + offset, y: n.position.y + offset },
+                data: { ...data, id },
+            };
+        });
+        const stamp = Date.now();
+        const newEdges: Edge[] = clipboard.edges.map((e, i) => ({
+            ...e,
+            id: `e-paste-${stamp}-${i}`,
+            source: idMap.get(e.source)!,
+            target: idMap.get(e.target)!,
+            selected: false,
+            data: structuredClone(e.data || {}),
+        }));
+
+        set({
+            nodes: [...nodes.map(n => (n.selected ? { ...n, selected: false } : n)), ...newNodes],
+            edges: [...edges, ...newEdges],
+            past: withSnapshot(past, nodes, edges),
+            future: [],
+        });
+        return newNodes.length;
     },
 
     onNodesChange: (changes) => {
@@ -106,20 +176,12 @@ const useStore = create<CircuitState>((set, get) => ({
         const hasStructuralChange = changes.some(c => c.type === 'remove' || c.type === 'add');
 
         // Track the most recently selected node
-        const selectChange = changes.find(c => c.type === 'select' && (c as any).selected === true) as any;
+        const selectChange = changes.find(c => c.type === 'select' && c.selected) as { id: string } | undefined;
 
         const { nodes, edges, past } = get();
-        const newNodes = applyNodeChanges(changes, nodes);
-
-        const updates: Partial<CircuitState> = { nodes: newNodes };
+        const updates: Partial<CircuitState> = { nodes: applyNodeChanges(changes, nodes) };
         if (hasStructuralChange) {
-            const snapshot = {
-                nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-                edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-            };
-            const newPast = [...past, snapshot];
-            if (newPast.length > MAX_HISTORY) newPast.shift();
-            updates.past = newPast;
+            updates.past = withSnapshot(past, nodes, edges);
             updates.future = [];
         }
         if (selectChange) {
@@ -130,20 +192,13 @@ const useStore = create<CircuitState>((set, get) => ({
     onEdgesChange: (changes) => {
         const hasStructuralChange = changes.some(c => c.type === 'remove' || c.type === 'add');
         const { nodes, edges, past } = get();
-        const newEdges = applyEdgeChanges(changes, edges);
-        const updates: Partial<CircuitState> = { edges: newEdges };
+        const updates: Partial<CircuitState> = { edges: applyEdgeChanges(changes, edges) };
         if (hasStructuralChange) {
-            const snapshot = {
-                nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-                edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-            };
-            const newPast = [...past, snapshot];
-            if (newPast.length > MAX_HISTORY) newPast.shift();
-            updates.past = newPast;
+            updates.past = withSnapshot(past, nodes, edges);
             updates.future = [];
         }
         // Track selected edge
-        const edgeSelectChange = changes.find(c => c.type === 'select' && (c as any).selected === true) as any;
+        const edgeSelectChange = changes.find(c => c.type === 'select' && c.selected) as { id: string } | undefined;
         if (edgeSelectChange) {
             updates.lastSelectedEdgeId = edgeSelectChange.id;
         }
@@ -151,13 +206,6 @@ const useStore = create<CircuitState>((set, get) => ({
     },
     onConnect: (connection) => {
         const { nodes, edges, past } = get();
-        const snapshot = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-        const newPast = [...past, snapshot];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
-
         const newEdge = {
             ...connection,
             id: `e-${connection.source}-${connection.sourceHandle ?? 'src'}-${connection.target}-${connection.targetHandle ?? 'tgt'}-${Date.now()}`,
@@ -167,17 +215,15 @@ const useStore = create<CircuitState>((set, get) => ({
 
         set({
             edges: [...edges, newEdge],
-            past: newPast,
+            past: withSnapshot(past, nodes, edges),
             future: [],
         });
     },
     addNode: (node) => {
         const { nodes, edges, past } = get();
-        const newPast = [...past, { nodes: structuredClone(nodes), edges: structuredClone(edges) }];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
         set({
             nodes: [...nodes, node],
-            past: newPast,
+            past: withSnapshot(past, nodes, edges),
             future: [],
         });
     },
@@ -216,69 +262,29 @@ const useStore = create<CircuitState>((set, get) => ({
     },
     flipHorizontal: () => {
         const { nodes, edges, past } = get();
-        const hasSelected = nodes.some(n => n.selected);
-        if (!hasSelected) return;
-
-        const snapshot = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-        const newPast = [...past, snapshot];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
-
+        if (!nodes.some(n => n.selected)) return;
         set({
-            nodes: nodes.map((node) => {
-                if (node.selected) {
-                    const oldData = node.data as any;
-                    return {
-                        ...node,
-                        data: {
-                            ...oldData,
-                            flipX: !oldData.flipX,
-                        },
-                    };
-                }
-                return node;
-            }),
-            past: newPast,
+            nodes: nodes.map((node) => node.selected
+                ? { ...node, data: { ...node.data, flipX: !(node.data as any).flipX } }
+                : node),
+            past: withSnapshot(past, nodes, edges),
             future: [],
         });
     },
     flipVertical: () => {
         const { nodes, edges, past } = get();
-        const hasSelected = nodes.some(n => n.selected);
-        if (!hasSelected) return;
-
-        const snapshot = {
-            nodes: nodes.map(n => ({ ...n, data: JSON.parse(JSON.stringify(n.data)) })),
-            edges: edges.map(e => ({ ...e, data: JSON.parse(JSON.stringify(e.data || {})) }))
-        };
-        const newPast = [...past, snapshot];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
-
+        if (!nodes.some(n => n.selected)) return;
         set({
-            nodes: nodes.map((node) => {
-                if (node.selected) {
-                    const oldData = node.data as any;
-                    return {
-                        ...node,
-                        data: {
-                            ...oldData,
-                            flipY: !oldData.flipY,
-                        },
-                    };
-                }
-                return node;
-            }),
-            past: newPast,
+            nodes: nodes.map((node) => node.selected
+                ? { ...node, data: { ...node.data, flipY: !(node.data as any).flipY } }
+                : node),
+            past: withSnapshot(past, nodes, edges),
             future: [],
         });
     },
     clearAll: () => {
         const { nodes, edges, past } = get();
-        const newPast = [...past, { nodes: structuredClone(nodes), edges: structuredClone(edges) }];
-        if (newPast.length > MAX_HISTORY) newPast.shift();
-        set({ nodes: [], edges: [], past: newPast, future: [] });
+        set({ nodes: [], edges: [], past: withSnapshot(past, nodes, edges), future: [] });
     },
 }));
 

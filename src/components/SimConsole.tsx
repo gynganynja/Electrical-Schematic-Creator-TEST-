@@ -19,7 +19,7 @@ export function SimConsole({ logs, canLogs, onClearCan }: ConsoleProps) {
     const [activeTab, setActiveTab] = useState<'system' | 'can'>('system');
 
     return (
-        <div className="h-64 border-t border-white/10 bg-transparent flex flex-col shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.2)] relative">
+        <div className="h-40 md:h-64 border-t border-white/10 bg-transparent flex flex-col shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.2)] relative">
             <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md -z-10"></div>
 
             {/* Tab Header */}

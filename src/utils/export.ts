@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
+import useStore from '../store/useStore';
 
 const UI_FILTER = (node: Element) => {
     const cls = (node as HTMLElement).className;
@@ -58,7 +59,7 @@ export async function exportToPdf(label = 'circuit-schematic') {
     }
 
     // ── collect schematic_frame nodes from the store ─────────────────────────
-    const storeState = (window as any).__circuitStore?.getState?.();
+    const storeState = useStore.getState() as any;
     const frameNodes: Array<{ id: string; x: number; y: number; w: number; h: number; name: string; desc: string }> = [];
 
     if (storeState?.nodes) {

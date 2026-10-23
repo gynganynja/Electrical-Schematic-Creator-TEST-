@@ -11,17 +11,10 @@ export function CANMonitor({ logs, onClear }: CANMonitorProps) {
     const [filter, setFilter] = useState('');
     const [isPaused, setIsPaused] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const baseTimeRef = useRef<number | null>(null);
-
-    // Set base time on first log arrival, reset when cleared
-    useEffect(() => {
-        if (logs.length > 0 && baseTimeRef.current === null) {
-            baseTimeRef.current = logs[0].timestamp;
-        }
-        if (logs.length === 0) {
-            baseTimeRef.current = null;
-        }
-    }, [logs]);
+    // Base time = first frame since the log was last cleared
+    const [baseTime, setBaseTime] = useState<number | null>(null);
+    if (logs.length > 0 && baseTime === null) setBaseTime(logs[0].timestamp);
+    if (logs.length === 0 && baseTime !== null) setBaseTime(null);
 
     // Auto-scroll logic
     useEffect(() => {
@@ -80,7 +73,7 @@ export function CANMonitor({ logs, onClear }: CANMonitorProps) {
             <div className="flex-1 overflow-y-auto" ref={scrollRef}>
                 {filteredLogs.map((log, i) => (
                     <div key={i} className="grid grid-cols-[80px_60px_40px_160px_auto] px-4 py-1 border-b border-white/5 hover:bg-white/[0.02] transition-colors tabular-nums">
-                        <div className="text-slate-500">{(((log.timestamp - (baseTimeRef.current ?? log.timestamp)) / 1000)).toFixed(3)}s</div>
+                        <div className="text-slate-500">{(((log.timestamp - (baseTime ?? log.timestamp)) / 1000)).toFixed(3)}s</div>
                         <div className="text-indigo-400 font-bold">0x{log.id.toString(16).toUpperCase().padStart(log.ide ? 8 : 3, '0')}</div>
                         <div className="text-slate-400">{log.dlc}</div>
                         <div className="text-slate-200">

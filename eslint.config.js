@@ -19,5 +19,10 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Component data is a free-form Record<string, any> by design (each of the
+      // ~60 component types carries its own params/state shape).
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   },
 ])

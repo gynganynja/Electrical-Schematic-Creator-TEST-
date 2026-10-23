@@ -103,10 +103,10 @@ export class CANScheduler {
         if (request.data[1] === 0x19) {
             // Positive response: [Len][Service+0x40][Sub][numDTCs][DTC1_H][DTC1_L][...]
             const responseData = [0x00, 0x59, request.data[2], dtcs.length];
-            dtcs.forEach(_dtc => {
+            for (let i = 0; i < dtcs.length; i++) {
                 // Simplified DTC encoding (mocked)
                 responseData.push(0x01, 0x23, 0x01); // P0123
-            });
+            }
             return {
                 id: request.id + 8,
                 ide: request.ide,

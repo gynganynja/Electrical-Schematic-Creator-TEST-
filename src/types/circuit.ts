@@ -86,7 +86,7 @@ export interface BatteryData extends BaseComponentData {
 
 export interface GroundData extends BaseComponentData {
     type: 'ground';
-    params: {};
+    params: Record<string, never>;
 }
 
 export interface ResistorData extends BaseComponentData {
@@ -108,7 +108,7 @@ export interface SwitchSPSTData extends BaseComponentData {
     state: {
         closed: boolean;
     };
-    params: {};
+    params: Record<string, never>;
 }
 
 export interface SwitchSPDTData extends BaseComponentData {
@@ -116,7 +116,7 @@ export interface SwitchSPDTData extends BaseComponentData {
     state: {
         position: 'nc' | 'no';
     };
-    params: {};
+    params: Record<string, never>;
 }
 
 export interface RelaySPDTData extends BaseComponentData {

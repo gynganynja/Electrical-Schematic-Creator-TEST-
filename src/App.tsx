@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import { ReactFlowProvider } from '@xyflow/react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { Palette } from './components/Palette';
 import { CircuitCanvas } from './components/CircuitCanvas';
 import { Inspector } from './components/Inspector';
@@ -16,27 +16,62 @@ import type { CANFrame } from './simulation/can/types';
 import { FaultInjectionPanel } from './components/tools/FaultInjectionPanel';
 import { LogicRuntime } from './simulation/ecu/LogicRuntime';
 import { RulesEditor } from './components/tools/RulesEditor';
+import { resetRuntimeState } from './utils/componentDefaults';
+import { loadAutosave, startAutosave } from './utils/autosave';
 
 const globalLogicRuntime = new LogicRuntime();
 
-// Expose store globally so export.ts can read frame nodes without a circular import
-(window as any).__circuitStore = useStore;
+/** Simulation tick period (ms) */
+const TICK_MS = 200;
+/** Keep the system log bounded so long runs don't grow memory without limit */
+const MAX_LOGS = 500;
+
+// Restore the last session before first render
+const restored = loadAutosave();
+if (restored) {
+  useStore.setState({
+    nodes: restored.nodes.map(resetRuntimeState),
+    edges: restored.edges.map(e => ({ ...e, style: undefined, animated: false, data: { ...(e.data || {}), voltage: undefined } })),
+  });
+}
 
 function App() {
+  return (
+    <ReactFlowProvider>
+      <AppInner />
+    </ReactFlowProvider>
+  );
+}
+
+function AppInner() {
   const [simState, setSimState] = useState<'stopped' | 'running' | 'paused'>('stopped');
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(() =>
+    restored ? [{ time: new Date().toLocaleTimeString('en-AU', { hour12: false }), level: 'info', message: `Restored previous session (${restored.nodes.length} components)` }] : []);
   const [canLogs, setCanLogs] = useState<CANFrame[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { fitView } = useReactFlow();
 
   const addLog = useCallback((level: LogEntry['level'], message: string) => {
     const time = new Date().toLocaleTimeString('en-AU', { hour12: false });
-    setLogs(prev => [...prev, { time, level, message }]);
+    setLogs(prev => {
+      const next = [...prev, { time, level, message }];
+      return next.length > MAX_LOGS ? next.slice(next.length - MAX_LOGS) : next;
+    });
   }, []);
+
+  const stopTimer = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }, []);
+
+  // Persist the circuit locally; stop the sim timer on unmount
+  useEffect(() => startAutosave(), []);
+  useEffect(() => stopTimer, [stopTimer]);
 
 
   const runOnce = useCallback(() => {
     const state = useStore.getState();
-    const result = solveCircuit(state.nodes as any, state.edges as any);
+    const result = solveCircuit(state.nodes as any, state.edges as any, Date.now());
 
     // Apply results back to store — batch into a single setState
     const hasNodeUpdates = result.nodeUpdates.length > 0;
@@ -348,52 +383,47 @@ function App() {
   }, [addLog]);
 
   const onRun = useCallback(() => {
+    if (intervalRef.current) return; // already running
     setSimState('running');
     addLog('info', 'Simulation RUNNING');
     runOnce();
-    intervalRef.current = setInterval(runOnce, 200);
+    intervalRef.current = setInterval(runOnce, TICK_MS);
   }, [addLog, runOnce]);
 
   const onPause = useCallback(() => {
     setSimState('paused');
     addLog('info', 'Simulation PAUSED');
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, [addLog]);
+    stopTimer();
+  }, [addLog, stopTimer]);
 
   const onStep = useCallback(() => {
+    stopTimer();
     setSimState('paused');
     addLog('info', 'Simulation STEP');
     runOnce();
-  }, [addLog, runOnce]);
+  }, [addLog, runOnce, stopTimer]);
 
-  const onReset = useCallback(() => {
+  /** Return every component to its pre-simulation state (fuses intact, relays off, wires uncoloured) */
+  const resetSimulation = useCallback(() => {
+    stopTimer();
     setSimState('stopped');
-    if (intervalRef.current) clearInterval(intervalRef.current);
     globalLogicRuntime.reset();
     globalCANScheduler.reset();
-    addLog('info', 'Simulation RESET');
-    // Reset all stateful component data
     const state = useStore.getState();
-    for (const node of state.nodes) {
-      const d = node.data as any;
-      if (d.type === 'fuse') {
-        state.updateNodeData(node.id, { state: { blown: false } } as any);
-      }
-      if (d.type === 'relay_spdt') {
-        state.updateNodeData(node.id, { state: { energized: false } } as any);
-      }
-      if (d.type === 'lamp') {
-        state.updateNodeData(node.id, { state: { on: false } } as any);
-      }
-      if (d.type === 'ecu_advanced' || d.type === 'ecu') {
-        state.updateNodeData(node.id, { state: { ...d.state, outputs: {}, outputVoltages: {}, inputVoltages: {} } } as any);
-      }
-    }
-    // Reset edge styles
     useStore.setState({
-      edges: state.edges.map(e => ({ ...e, style: undefined, animated: false })),
+      nodes: state.nodes.map(n => resetRuntimeState(n)),
+      edges: state.edges.map(e => {
+        const data = { ...(e.data || {}) } as Record<string, unknown>;
+        delete data.voltage;
+        return { ...e, style: undefined, animated: false, data };
+      }),
     });
-  }, [addLog]);
+  }, [stopTimer]);
+
+  const onReset = useCallback(() => {
+    resetSimulation();
+    addLog('info', 'Simulation RESET');
+  }, [addLog, resetSimulation]);
 
   const onSave = useCallback(() => {
     const state = useStore.getState();
@@ -420,24 +450,33 @@ function App() {
   const onLoad = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
+    input.accept = '.json,.txt,application/json';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
+        let project: any;
         try {
-          const project = JSON.parse(ev.target?.result as string);
-          useStore.setState({ nodes: project.nodes, edges: project.edges });
-          addLog('info', `Loaded project with ${project.nodes.length} components`);
+          project = JSON.parse(ev.target?.result as string);
         } catch {
-          addLog('error', 'Failed to parse project file');
+          addLog('error', `Failed to parse ${file.name}: not valid JSON`);
+          return;
         }
+        if (!project || !Array.isArray(project.nodes) || !Array.isArray(project.edges)) {
+          addLog('error', `${file.name} is not a circuit project (missing nodes/edges)`);
+          return;
+        }
+        resetSimulation();
+        useStore.getState().loadProject(project.nodes, project.edges);
+        setCanLogs([]);
+        addLog('info', `Loaded ${file.name} (${project.nodes.length} components)`);
+        setTimeout(() => fitView({ padding: 0.15, duration: 300, maxZoom: 1.2 }), 50);
       };
       reader.readAsText(file);
     };
     input.click();
-  }, [addLog]);
+  }, [addLog, fitView, resetSimulation]);
 
   const onExport = useCallback(async () => {
     addLog('info', 'Generating PDF Export...');
@@ -458,56 +497,62 @@ function App() {
   }, []);
 
   const onClearAll = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setSimState('stopped');
+    if (useStore.getState().nodes.length === 0) return;
+    resetSimulation();
     useStore.getState().clearAll();
     setLogs([]);
-    addLog('info', 'Canvas cleared');
-  }, [addLog]);
+    setCanLogs([]);
+    addLog('info', 'Canvas cleared (Ctrl+Z to undo)');
+  }, [addLog, resetSimulation]);
 
-  // Consolidating keyboard shortcuts to CircuitCanvas
+  const onUndo = useCallback(() => useStore.getState().undo(), []);
+  const onRedo = useCallback(() => useStore.getState().redo(), []);
+
 
   const onAutoLayout = useCallback(() => {
     const state = useStore.getState();
+    if (state.nodes.length === 0) return;
+    state.pushHistory();
     const layoutedNodes = autoLayout(state.nodes, state.edges, 'TB');
     useStore.setState({ nodes: layoutedNodes });
-    addLog('info', 'Auto layout applied');
-  }, [addLog]);
+    addLog('info', 'Auto layout applied (Ctrl+Z to undo)');
+    setTimeout(() => fitView({ padding: 0.15, duration: 300, maxZoom: 1.2 }), 50);
+  }, [addLog, fitView]);
 
   return (
-    <ReactFlowProvider>
-      <div className="flex h-screen w-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100 font-sans">
-        {/* Left Palette: desktop sidebar only — mobile renders as FAB+drawer internally */}
-        <Palette />
+    <div className="flex h-screen w-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-100 font-sans">
+      {/* Left Palette: desktop sidebar only — mobile renders as FAB+drawer internally */}
+      <Palette />
 
-        {/* Center Canvas + Toolbar + Console */}
-        <div className="flex-1 flex flex-col relative h-full overflow-hidden min-w-0">
-          <Toolbar
-            simState={simState}
-            onRun={onRun}
-            onPause={onPause}
-            onStep={onStep}
-            onReset={onReset}
-            onSave={onSave}
-            onLoad={onLoad}
-            onExport={onExport}
-            onFlipX={onFlipX}
-            onFlipY={onFlipY}
-            onClearAll={onClearAll}
-            onAutoLayout={onAutoLayout}
-          />
-          <CircuitCanvas />
-          <SimConsole logs={logs} canLogs={canLogs} onClearCan={onClearCan} />
-        </div>
-
-        {/* Floating Tools */}
-        <FaultInjectionPanel />
-        <RulesEditor />
-
-        {/* Right Inspector: desktop inline sidebar, mobile overlay (handled inside Inspector) */}
-        <Inspector />
+      {/* Center Canvas + Toolbar + Console */}
+      <div className="flex-1 flex flex-col relative h-full overflow-hidden min-w-0">
+        <Toolbar
+          simState={simState}
+          onRun={onRun}
+          onPause={onPause}
+          onStep={onStep}
+          onReset={onReset}
+          onSave={onSave}
+          onLoad={onLoad}
+          onExport={onExport}
+          onFlipX={onFlipX}
+          onFlipY={onFlipY}
+          onClearAll={onClearAll}
+          onAutoLayout={onAutoLayout}
+          onUndo={onUndo}
+          onRedo={onRedo}
+        />
+        <CircuitCanvas />
+        <SimConsole logs={logs} canLogs={canLogs} onClearCan={onClearCan} />
       </div>
-    </ReactFlowProvider>
+
+      {/* Floating Tools */}
+      <FaultInjectionPanel />
+      <RulesEditor />
+
+      {/* Right Inspector: desktop inline sidebar, mobile overlay (handled inside Inspector) */}
+      <Inspector />
+    </div>
   );
 }
 

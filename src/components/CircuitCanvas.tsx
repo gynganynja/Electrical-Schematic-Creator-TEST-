@@ -10,6 +10,7 @@ import {
 import type { ReactFlowInstance, Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import useStore from '../store/useStore';
+import { makeNode } from '../utils/componentDefaults';
 import { BatteryNode } from './nodes/BatteryNode';
 import { GroundNode } from './nodes/GroundNode';
 import { LampNode } from './nodes/LampNode';
@@ -145,143 +146,8 @@ const defaultEdgeOptions = {
     type: 'wire',
 };
 
-/** Generate a unique node ID that won't collide with any existing node */
-function getNextNodeId(): string {
-    const nodes = useStore.getState().nodes;
-    let maxId = 0;
-    for (const node of nodes) {
-        const num = parseInt(node.id, 10);
-        if (!isNaN(num) && num > maxId) maxId = num;
-    }
-    return String(maxId + 1);
-}
-
-function makeDefaultData(type: string, id: string): Record<string, any> {
-    switch (type) {
-        case 'battery':
-            return { id, type, label: `BAT${id}`, state: {}, params: { voltage: 12, internalResistance: 0.05 } };
-        case 'ground':
-            return { id, type, label: `GND${id}`, state: {}, params: {} };
-        case 'resistor':
-            return { id, type, label: `R${id}`, state: {}, params: { resistance: 100 } };
-        case 'lamp':
-            return { id, type, label: `L${id}`, state: { on: false }, params: { resistance: 24 } };
-        case 'switch_spst':
-            return { id, type, label: `S${id}`, state: { closed: false }, params: {} };
-        case 'switch_momentary':
-            return { id, type: 'switch_spst', label: `MOM${id}`, state: { closed: false }, params: {} };
-        case 'fuse':
-            return { id, type, label: `F${id}`, state: { blown: false }, params: { tripCurrent: 15, tripTimeMs: 100 } };
-        case 'relay_spdt':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8 } };
-        case 'splice':
-            return { id, type, label: `SP${id}`, state: {}, params: {} };
-        case 'motor':
-            return { id, type, label: `M${id}`, state: { running: false }, params: { resistance: 4 } };
-        case 'led':
-            return { id, type, label: `LED${id}`, state: { on: false }, params: { resistance: 150, color: '#ef4444' } };
-        case 'diode':
-            return { id, type, label: `D${id}`, state: {}, params: { forwardDrop: 0.7 } };
-        case 'flasher':
-            return { id, type, label: `FL${id}`, state: { outputOn: false }, params: { rateHz: 1.5, resistance: 1 } };
-        case 'buzzer':
-            return { id, type, label: `BZ${id}`, state: { on: false }, params: { resistance: 50 } };
-        case 'solenoid':
-            return { id, type, label: `SOL${id}`, state: { activated: false }, params: { resistance: 10 } };
-        case 'switch_momentary_no':
-            return { id, type, label: `PB_NO${id}`, state: { closed: false }, params: {} };
-        case 'switch_momentary_nc':
-            return { id, type, label: `PB_NC${id}`, state: { open: false }, params: {} };
-        case 'switch_spdt':
-            return { id, type, label: `SW${id}`, state: { position: 'nc' }, params: {} };
-        case 'switch_dpdt':
-            return { id, type, label: `DPDT${id}`, state: { position: 'nc' }, params: {} };
-        case 'switch_ignition':
-            return { id, type, label: `IGN${id}`, state: { position: 'off' }, params: {} };
-        case 'switch_master':
-            return { id, type, label: `MSTR${id}`, state: { closed: false }, params: {} };
-        case 'breaker_manual':
-            return { id, type, label: `CB${id}`, state: { tripped: false }, params: { tripCurrent: 20, tripTimeMs: 50 } };
-        case 'breaker_auto':
-            return { id, type, label: `ACB${id}`, state: { tripped: false }, params: { tripCurrent: 20, tripTimeMs: 50, resetDelayMs: 2000 } };
-        case 'fusible_link':
-            return { id, type, label: `FL${id}`, state: { blown: false }, params: { tripCurrent: 80, tripTimeMs: 500 } };
-        case 'tvs_clamp':
-            return { id, type, label: `TVS${id}`, state: {}, params: { clampVoltage: 36, forwardDrop: 0.7 } };
-        case 'cable_resistance':
-            return { id, type, label: `W${id}`, state: {}, params: { resistance: 0.1, length_m: 10, gauge: '10 AWG' } };
-        case 'relay_spst':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8 } };
-        case 'relay_dual87':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8 } };
-        case 'relay_latching':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8 } };
-        case 'relay_delay_on':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8, delayMs: 2000 } };
-        case 'relay_delay_off':
-            return { id, type, label: `K${id}`, state: { energized: false }, params: { coilResistance: 80, pullInVoltage: 8, delayMs: 5000 } };
-        case 'heater':
-            return { id, type, label: `HTR${id}`, state: { on: false }, params: { resistance: 12 } };
-        case 'compressor_clutch':
-            return { id, type, label: `AC${id}`, state: { activated: false }, params: { resistance: 3 } };
-        case 'wiper_motor':
-            return { id, type, label: `WPR${id}`, state: { running: false, parkClosed: true }, params: { resistance: 6 } };
-        case 'capacitor':
-            return { id, type, label: `C${id}`, state: {}, params: { capacitance: '100µF' } };
-        case 'inductor':
-            return { id, type, label: `L${id}`, state: {}, params: { inductance: '10mH', resistance: 0.5 } };
-        case 'zener':
-            return { id, type, label: `ZD${id}`, state: {}, params: { breakdownVoltage: 5.1, forwardDrop: 0.7 } };
-        case 'potentiometer':
-            return { id, type, label: `POT${id}`, state: { position: 50 }, params: { resistance: 10000 } };
-        case 'ecu':
-            return { id, type, label: `ECU${id}`, state: {}, params: { numInputs: 4, numOutputs: 4 } };
-        case 'connector':
-            return { id, type, label: `J${id}`, state: {}, params: { numPins: 4 } };
-        case 'net_label':
-            return { id, type, label: `NET${id}`, state: {}, params: { color: '#38bdf8' } };
-        case 'harness_entry':
-            return { id, type, label: `H${id}`, state: {}, params: { numPins: 6, color: '#64748b' } };
-        case 'harness_exit':
-            return { id, type, label: `H${id}`, state: {}, params: { numPins: 6, color: '#64748b' } };
-        case 'temp_sensor':
-            return { id, type, label: `TEMP${id}`, state: { temperature: 25 }, params: {} };
-        case 'oil_press_sensor':
-            return { id, type, label: `OIL${id}`, state: { pressure: 40 }, params: {} };
-        case 'air_press_sensor':
-            return { id, type, label: `AIR${id}`, state: { pressure: 101.3 }, params: {} };
-        case 'maf_sensor':
-            return { id, type, label: `MAF${id}`, state: { flow: 5 }, params: {} };
-        case 'tps_sensor':
-            return { id, type, label: `TPS${id}`, state: { position: 0 }, params: { vMin: 0.5, vMax: 4.5 } };
-        case 'ignition_coil':
-            return { id, type, label: `IGN${id}`, state: { activated: false }, params: { resistance: 1.2 } };
-        case 'throttle_actuator':
-            return { id, type, label: `THA${id}`, state: { activated: false, position: 0 }, params: { resistance: 2.5 } };
-        case 'rpm_sensor':
-            return { id, type, label: `RPM${id}`, state: { rpm: 0 }, params: {} };
-        case 'wss_sensor':
-            return { id, type, label: `WSS${id}`, state: { speed: 0 }, params: {} };
-        case 'speedo_gauge':
-            return { id, type, label: `SPD${id}`, state: { voltage: 0 }, params: {} };
-        case 'tacho_gauge':
-            return { id, type, label: `TACH${id}`, state: { voltage: 0 }, params: {} };
-        case 'fuel_gauge':
-            return { id, type, label: `FUEL${id}`, state: { voltage: 0 }, params: {} };
-        case 'can_bus':
-            return { id, type, label: `CAN${id}`, state: {}, params: { bitrate: 500000, mode: 'HS-CAN' } };
-        case 'can_transceiver':
-            return { id, type, label: `XCVR${id}`, state: { vcc: 0 }, params: {} };
-        case 'can_terminator':
-            return { id, type, label: `TERM${id}`, state: {}, params: {} };
-        case 'ecu_advanced':
-            return { id, type, label: `ECU${id}`, state: { vcc: 0 }, params: { canMode: 'J1939', sourceAddress: 0x01 } };
-        case 'schematic_frame':
-            return { id, type, label: `FRAME${id}`, state: {}, params: { frameName: `Sheet ${id}`, frameDescription: '' } };
-        default:
-            return { id, type: 'resistor', label: `R${id}`, state: {}, params: { resistance: 100 } };
-    }
-}
+// Don't blow a lone component up to max zoom when the view is first fitted
+const fitViewOptions = { padding: 0.15, maxZoom: 1.2 };
 
 /**
  * Find the closest edge to a given position (within threshold).
@@ -345,22 +211,35 @@ export function CircuitCanvas() {
         reactFlowInstance.current = instance;
     }, []);
 
-    // Keyboard shortcuts
+    // Keyboard shortcuts (ignored while typing in a field so text undo still works)
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            const isCtrl = e.ctrlKey || e.metaKey;
-            const key = e.key.toLowerCase();
+            const target = e.target as HTMLElement | null;
+            if (target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
 
-            if (isCtrl && key === 'z') {
+            const isCtrl = e.ctrlKey || e.metaKey;
+            if (!isCtrl) return;
+            const key = e.key.toLowerCase();
+            const store = useStore.getState();
+
+            if (key === 'z') {
                 e.preventDefault();
-                if (e.shiftKey) {
-                    useStore.getState().redo();
-                } else {
-                    useStore.getState().undo();
-                }
-            } else if (isCtrl && key === 'y') {
+                if (e.shiftKey) store.redo();
+                else store.undo();
+            } else if (key === 'y') {
                 e.preventDefault();
-                useStore.getState().redo();
+                store.redo();
+            } else if (key === 'c') {
+                store.copySelection();
+            } else if (key === 'v') {
+                e.preventDefault();
+                store.paste();
+            } else if (key === 'd') {
+                e.preventDefault();
+                if (store.copySelection() > 0) store.paste();
+            } else if (key === 'a') {
+                e.preventDefault();
+                useStore.setState({ nodes: store.nodes.map(n => ({ ...n, selected: true })) });
             }
         };
 
@@ -385,22 +264,9 @@ export function CircuitCanvas() {
                 y: event.clientY,
             });
 
-            const id = getNextNodeId();
-            const newNodeData = makeDefaultData(type, id);
-
-            // Add the new node
-            const isFrame = type === 'schematic_frame';
-            addNode({
-                id,
-                type,
-                position,
-                data: newNodeData,
-                ...(isFrame ? {
-                    zIndex: -1,
-                    style: { width: 800, height: 500 },
-                    resizing: true,
-                } : {}),
-            } as Node);
+            const newNode = makeNode(type, position);
+            const id = newNode.id;
+            addNode(newNode);
 
             // Only auto-split if splice is dropped directly ON an existing wire (10px threshold)
             if (type === 'splice') {
@@ -441,7 +307,19 @@ export function CircuitCanvas() {
     const validEdges = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
 
     return (
-        <div className="flex-1 h-full" ref={reactFlowWrapper}>
+        <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
+            {nodes.length === 0 && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                    <div className="text-center max-w-sm px-6 py-5 rounded-xl border border-white/10 bg-slate-900/70 backdrop-blur-sm shadow-xl">
+                        <div className="text-slate-200 font-semibold mb-1">Start a circuit</div>
+                        <div className="text-sm text-slate-400 leading-relaxed">
+                            Drag components from the palette (or click them), wire handle to handle, then press <span className="text-blue-300 font-medium">Run</span>.
+                            Or load one of the <span className="text-blue-300 font-medium">Examples</span>.
+                        </div>
+                        <div className="mt-3 text-[11px] text-slate-500 font-mono">Ctrl+Z undo · Ctrl+C/V copy/paste · Ctrl+D duplicate · Del delete</div>
+                    </div>
+                </div>
+            )}
             <ReactFlow
                 nodes={nodes}
                 edges={validEdges}
@@ -455,6 +333,7 @@ export function CircuitCanvas() {
                 edgeTypes={edgeTypes}
                 defaultEdgeOptions={defaultEdgeOptions}
                 fitView
+                fitViewOptions={fitViewOptions}
                 snapToGrid
                 snapGrid={[20, 20]}
                 deleteKeyCode={['Backspace', 'Delete']}
@@ -473,7 +352,7 @@ export function CircuitCanvas() {
                     nodeStrokeColor="#38bdf8"
                     nodeColor="#1e293b"
                     maskColor="rgba(2,6,23,0.7)"
-                    className="!bg-slate-900 !border !border-slate-700 !rounded-lg"
+                    className="!bg-slate-900 !border !border-slate-700 !rounded-lg max-md:!hidden"
                 />
             </ReactFlow>
         </div>

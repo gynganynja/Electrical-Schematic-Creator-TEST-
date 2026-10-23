@@ -127,6 +127,8 @@ export function RulesEditor() {
             });
             setRules(migrated);
         }
+        // Only reload when switching ECU — re-running on every node update would discard unsaved edits
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingECUId]);
 
     if (!editingECUId || !editingECU) return null;
@@ -808,14 +810,14 @@ export function RulesEditor() {
                             <p className="text-xs uppercase tracking-widest">No Active Rules</p>
                         </div>
                     )}
-                    {rules.map((rawRule: any) => {
+                    {rules.map((rawRule: any, ruleIndex: number) => {
                         if (!rawRule || typeof rawRule !== 'object') return null;
 
                         // Migration Layer
                         let rule = rawRule;
                         if (!rule.type && rule.inputPin) {
                             rule = {
-                                id: `migrated-${Math.random()}`,
+                                id: `migrated-${ruleIndex}`,
                                 type: 'COMPARE',
                                 config: {
                                     input: rule.inputPin,

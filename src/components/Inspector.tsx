@@ -218,6 +218,26 @@ export function Inspector() {
                     </>
                 )}
 
+                {/* Semiconductor junction parameters + live status */}
+                {['diode', 'led'].includes(data.type) && (
+                    <FieldGroup label={data.type === 'led' ? 'Forward Voltage (V)' : 'Forward Drop (V)'}>
+                        <input
+                            type="number" step="0.1"
+                            value={data.type === 'led' ? (data.params?.forwardVoltage ?? 2.0) : (data.params?.forwardDrop ?? 0.7)}
+                            onChange={(e) => updateNodeData(selectedNode.id, { params: { ...data.params, [data.type === 'led' ? 'forwardVoltage' : 'forwardDrop']: Number(e.target.value) } } as any)}
+                            className="w-full border border-slate-700 bg-slate-950/50 text-slate-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
+                        />
+                    </FieldGroup>
+                )}
+                {['diode', 'led', 'zener', 'tvs_clamp'].includes(data.type) && data.state?.junction !== undefined && (
+                    <FieldGroup label="Status">
+                        <span className={`text-sm font-bold font-mono ${data.state.junction === 'off' ? 'text-slate-400' : data.state.junction === 'rev' ? 'text-amber-400' : 'text-green-500'}`}>
+                            {data.state.junction === 'fwd' ? 'FORWARD' : data.state.junction === 'rev' ? 'CLAMPING' : 'BLOCKING'}
+                            {data.state.junction !== 'off' && typeof data.state.current === 'number' && ` · ${(Math.abs(data.state.current) * 1000).toFixed(1)} mA`}
+                        </span>
+                    </FieldGroup>
+                )}
+
                 {data.type === 'fuse' && (
                     <>
                         <FieldGroup label="Trip Current (A)">
@@ -233,6 +253,14 @@ export function Inspector() {
                                 {data.state?.blown ? 'YES' : 'NO'}
                             </span>
                         </FieldGroup>
+                        {data.state?.blown && (
+                            <button
+                                onClick={() => updateNodeData(selectedNode.id, { state: { blown: false } } as any)}
+                                className="px-3 py-1.5 rounded-md text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30 transition-all"
+                            >
+                                REPLACE FUSE
+                            </button>
+                        )}
                     </>
                 )}
 
@@ -288,6 +316,24 @@ export function Inspector() {
                                 {(data.state?.tripped || data.state?.blown) ? 'TRIPPED / BLOWN' : 'OK'}
                             </span>
                         </FieldGroup>
+                        {data.type === 'breaker_auto' && (
+                            <FieldGroup label="Auto-Reset Delay (ms)">
+                                <input
+                                    type="number"
+                                    value={data.params?.resetDelayMs ?? 2000}
+                                    onChange={(e) => updateNodeData(selectedNode.id, { params: { ...data.params, resetDelayMs: Number(e.target.value) } } as any)}
+                                    className="w-full border border-slate-700 bg-slate-950/50 text-slate-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono"
+                                />
+                            </FieldGroup>
+                        )}
+                        {data.type === 'fusible_link' && data.state?.blown && (
+                            <button
+                                onClick={() => updateNodeData(selectedNode.id, { state: { blown: false } } as any)}
+                                className="px-3 py-1.5 rounded-md text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30 transition-all"
+                            >
+                                REPLACE LINK
+                            </button>
+                        )}
                         {data.type === 'breaker_manual' && data.state?.tripped && (
                             <button
                                 onClick={() => updateNodeData(selectedNode.id, { state: { tripped: false } } as any)}
